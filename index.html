@@ -1338,6 +1338,7 @@
             const ids = [auth.currentUser?.uid, auth.currentUser?.email].filter(Boolean);
             refreshHistoryListener(ids);
         }
+        window.setHistoryPeriod = setHistoryPeriod;
 
 
         function refreshHistoryListener(idList = []) {
