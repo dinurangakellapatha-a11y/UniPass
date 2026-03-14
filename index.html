@@ -612,7 +612,7 @@
                                 <div class="relative">
                                     <div id="id-avatar"
                                         class="size-32 rounded-2xl bg-center bg-no-repeat bg-cover border-4 border-white dark:border-slate-700 shadow-lg"
-                                        style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuCO3vbNZlWiecpazerztiz7fmumJhJoJWL1kkK4uJr3_nLHUJ_8JTk05oZBDvbXqBMdyvrb7MXCkUDEZ2jDKwtjssPAJAVV6x12u0UqSgWjf7FCS3PbjhbtW0u-IOgkR66MjRAM-GlR_0T5Efc5I50ZbcdjRJahrr2lPeWgYoS5VtGOIu3cWUCz9y6q-kKJ56At2rFSE8qLY3YefRvX4UF6BKuXd2uPADVDKjLi87zcKjs57BqX_44Sti_4lwedEywYmYDsPJCCVNw");'>
+                                        style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuCJQ9S0s5AfOFBUiVg6bTtj3mugM1221WJYFBMFQTZveaK7-JUhQPoD6WBjAWty3cjFIcgQYlMKrFWXnAPkux-wnjru0luC_0703uxLcold6XNKG9vBmxJO2gnmI3ihLselg6Q0GXK97fDPW5E9sv1fA-okgGpW2-k2XcAd0rFrKmI1FS7K5jlOjykmBwmUcBEZ_mRCNf9N1D320RSpN766XdJrh-rK884MrvibTT9uYRYSZIJbC0jQJ0fKHY_3KmKp9M_RsissqpI");'>
                                     </div>
                                     <div
                                         class="absolute -bottom-2 -right-2 bg-green-500 border-4 border-white dark:border-slate-800 size-6 rounded-full">
@@ -741,7 +741,7 @@
                             <div class="flex gap-4 flex-col items-center">
                                 <div id="profile-avatar"
                                     class="bg-center bg-no-repeat aspect-square bg-cover rounded-full min-h-32 w-32 border-4 border-primary/10 shadow-lg"
-                                    style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuD8yXeKAGvkkQyNwy19DpUh_INeQaRjEz0YvyWMDndNlc9wkcnWVTJO9lqGWNXZhoLhg1Kq2NTyje6px9J98GzKawwWdg7MpOp0nutZob1tSAh0xknEbGpCTm7RAbZ-bF11ASSpDotUxGLaqNKXa7CIfm6iN5xW2BjhMqwA1PpoZIJuSzbyo44zu12J6qsVpCk_u-oPtwuTEZNH0s2Hd1SoppDeoeDkVI_yXvqnoZY1KkSnghxh2bRj4t81dxecRTxUYpNiFJbW-qw");'>
+                                    style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuCJQ9S0s5AfOFBUiVg6bTtj3mugM1221WJYFBMFQTZveaK7-JUhQPoD6WBjAWty3cjFIcgQYlMKrFWXnAPkux-wnjru0luC_0703uxLcold6XNKG9vBmxJO2gnmI3ihLselg6Q0GXK97fDPW5E9sv1fA-okgGpW2-k2XcAd0rFrKmI1FS7K5jlOjykmBwmUcBEZ_mRCNf9N1D320RSpN766XdJrh-rK884MrvibTT9uYRYSZIJbC0jQJ0fKHY_3KmKp9M_RsissqpI");'>
                                 </div>
                                 <div class="flex flex-col items-center justify-center">
                                     <p id="profile-name"
@@ -836,6 +836,18 @@
                         <section>
                             <h3 class="text-xs font-bold text-gray-400 uppercase tracking-widest px-1 mb-3">Personal Information</h3>
                             <div class="bg-white dark:bg-background-dark/50 rounded-2xl border border-gray-100 dark:border-gray-800 divide-y divide-gray-100 dark:divide-gray-800 overflow-hidden shadow-sm">
+                                <div class="p-4 flex flex-col gap-1">
+                                    <label class="text-[10px] font-bold text-primary uppercase">Profile Picture</label>
+                                    <div class="flex items-center gap-4 mt-2">
+                                        <div id="settings-avatar-preview" class="size-16 rounded-full bg-center bg-no-repeat bg-cover border-2 border-primary/20"
+                                            style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuCJQ9S0s5AfOFBUiVg6bTtj3mugM1221WJYFBMFQTZveaK7-JUhQPoD6WBjAWty3cjFIcgQYlMKrFWXnAPkux-wnjru0luC_0703uxLcold6XNKG9vBmxJO2gnmI3ihLselg6Q0GXK97fDPW5E9sv1fA-okgGpW2-k2XcAd0rFrKmI1FS7K5jlOjykmBwmUcBEZ_mRCNf9N1D320RSpN766XdJrh-rK884MrvibTT9uYRYSZIJbC0jQJ0fKHY_3KmKp9M_RsissqpI");'>
+                                        </div>
+                                        <button class="px-4 py-2 bg-primary/10 text-primary rounded-lg text-sm font-semibold hover:bg-primary/20 transition-colors relative">
+                                            Change Photo
+                                            <input type="file" id="settings-avatar-upload" accept="image/*" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer">
+                                        </button>
+                                    </div>
+                                </div>
                                 <div class="p-4 flex flex-col gap-1">
                                     <label class="text-[10px] font-bold text-primary uppercase">Full Name</label>
                                     <input type="text" id="settings-name" class="bg-transparent border-none p-0 text-base font-medium focus:ring-0 text-[#100d1b] dark:text-white" value="Student" readonly>
@@ -1195,6 +1207,9 @@
             if ($("settings-name")) $("settings-name").value = capName;
             if ($("settings-email")) $("settings-email").value = user.email;
             if ($("settings-phone")) $("settings-phone").value = data.phone || "+94 —";
+            if ($("settings-avatar-preview") && data.photoURL) {
+                $("settings-avatar-preview").style.backgroundImage = `url("${data.photoURL}")`;
+            }
             
             // Sync Dark Mode Toggle
             const dmToggle = $("settings-dark-mode");
@@ -1520,6 +1535,7 @@
                     const studentRef = doc(db, "students", user.uid);
                     await setDoc(studentRef, {
                         phone: $("settings-phone").value,
+                        photoURL: window.currentUploadedAvatar || user.photoURL,
                         // email is handled by Auth, but we can store it in Firestore for display
                         lastUpdated: serverTimestamp()
                     }, { merge: true });
@@ -1542,6 +1558,33 @@
                         btnSaveSettings.disabled = false;
                     }, 2000);
                 }
+            });
+        }
+
+        // Handle Avatar Upload
+        const avatarUpload = $("settings-avatar-upload");
+        if (avatarUpload) {
+            avatarUpload.addEventListener("change", function(e) {
+                const file = e.target.files[0];
+                if (!file) return;
+
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    const dataUrl = event.target.result;
+                    window.currentUploadedAvatar = dataUrl;
+                    
+                    // Update preview in settings immediately
+                    const preview = $("settings-avatar-preview");
+                    if (preview) {
+                        preview.style.backgroundImage = `url("\${dataUrl}")`;
+                    }
+                    
+                    // Update main avatars immediately for visual feedback
+                    [$("dashboard-avatar"), $("id-avatar"), $("profile-avatar")].forEach(el => {
+                        if (el) el.style.backgroundImage = `url("\${dataUrl}")`;
+                    });
+                };
+                reader.readAsDataURL(file);
             });
         }
 
