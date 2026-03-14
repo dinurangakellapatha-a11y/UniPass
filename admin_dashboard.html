@@ -436,11 +436,28 @@
       </div>
       <div class="h-8 w-px bg-slate-200 dark:bg-slate-700 hidden sm:block"></div>
       <div class="flex items-center gap-2 flex-1 min-w-[300px]">
-        <div
-          class="flex-1 flex items-center bg-slate-100 dark:bg-slate-800 rounded-lg px-3 py-2 border border-slate-200 dark:border-slate-700 group cursor-pointer relative">
+        <!-- Wrap input in a label to make entire area clickable, and add hover logic -->
+        <label
+          onmouseenter="this.querySelector('input').showPicker()"
+          class="flex-1 flex items-center bg-slate-100 dark:bg-slate-800 rounded-lg px-3 py-2 border border-slate-200 dark:border-slate-700 group cursor-pointer relative transition-colors hover:bg-slate-200">
           <span class="material-symbols-outlined text-slate-500 text-[18px] mr-2">calendar_today</span>
           <input type="date" id="log-date-filter" class="w-full bg-transparent border-none text-sm text-slate-700 dark:text-slate-300 focus:ring-0 outline-none h-6 cursor-pointer">
-        </div>
+          <style>
+             /* Hide the default right-side calendar picker icon */
+             #log-date-filter::-webkit-calendar-picker-indicator {
+                 background: transparent;
+                 bottom: 0;
+                 color: transparent;
+                 cursor: pointer;
+                 height: auto;
+                 left: 0;
+                 position: absolute;
+                 right: 0;
+                 top: 0;
+                 width: auto;
+             }
+          </style>
+        </label>
       </div>
     </div>
     <div class="flex-1 @container">
