@@ -1,0 +1,720 @@
+<!DOCTYPE html>
+<html class="light" lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+  <title>Security Portal - Campus Access</title>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&amp;display=swap" rel="stylesheet" />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+    rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+  <script src="https://unpkg.com/html5-qrcode"></script>
+
+  <script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "primary": "#6366f1",
+            "primary-dark": "#4f46e5",
+            "background-light": "#f8fafc",
+            "background-dark": "#0B0F19",
+          },
+          fontFamily: { "display": ["Outfit", "sans-serif"] },
+          borderRadius: { "DEFAULT": "0.5rem", "lg": "1rem", "xl": "1.5rem", "full": "9999px" },
+        },
+      },
+    }
+  </script>
+  <style>
+    body {
+      min-height: 100vh;
+      background: radial-gradient(circle at 15% 50%, rgba(99, 102, 241, .08), transparent 25%),
+                  radial-gradient(circle at 85% 30%, rgba(99, 102, 241, .06), transparent 25%),
+                  #f8fafc;
+      overflow-x: hidden;
+    }
+
+    /* ── Login Overlay ── */
+    #login-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+      transition: opacity 0.6s ease, visibility 0.6s ease;
+    }
+    #login-overlay.fade-out {
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+    }
+    .login-card {
+      background: rgba(255,255,255,0.07);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid rgba(255,255,255,0.14);
+      border-radius: 2rem;
+      padding: 3rem 2.5rem;
+      width: 100%;
+      max-width: 420px;
+      box-shadow: 0 30px 80px rgba(0,0,0,0.5);
+      animation: cardIn 0.5s cubic-bezier(0.22,1,0.36,1) both;
+    }
+    @keyframes cardIn {
+      from { opacity:0; transform: translateY(28px) scale(0.97); }
+      to   { opacity:1; transform: translateY(0)   scale(1);    }
+    }
+    .brand-icon {
+      width: 64px; height: 64px;
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      border-radius: 1.25rem;
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 1.5rem;
+      box-shadow: 0 8px 24px rgba(99,102,241,0.5);
+    }
+    .login-field {
+      position: relative;
+      margin-bottom: 1rem;
+    }
+    .login-field input {
+      width: 100%;
+      background: rgba(255,255,255,0.07);
+      border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 1rem;
+      padding: 1rem 1rem 1rem 3rem;
+      color: #fff;
+      font-size: 0.95rem;
+      outline: none;
+      transition: all 0.2s;
+    }
+    .login-field .field-icon {
+      position: absolute;
+      left: 1rem;
+      top: 50%;
+      transform: translateY(-50%);
+      color: rgba(255,255,255,0.3);
+    }
+    .login-field input:focus {
+      border-color: #6366f1;
+      background: rgba(99,102,241,0.1);
+    }
+    .login-btn {
+      width: 100%;
+      padding: 1rem;
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      color: #fff;
+      font-weight: 800;
+      border-radius: 1rem;
+      box-shadow: 0 4px 20px rgba(99,102,241,0.45);
+      transition: all 0.15s;
+    }
+    .login-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 28px rgba(99,102,241,0.55); }
+
+    /* Scanner View Customization */
+    #reader {
+      border: none !important;
+      border-radius: 1.5rem;
+      overflow: hidden;
+      background: #f8fafc;
+    }
+    #reader video {
+      object-fit: cover !important;
+    }
+    #reader__dashboard_section_csr button {
+      background: #6366f1 !important;
+      color: white !important;
+      border: none !important;
+      padding: 12px 24px !important;
+      border-radius: 14px !important;
+      font-weight: 700 !important;
+      font-family: 'Outfit', sans-serif !important;
+      cursor: pointer !important;
+      margin: 15px 0 !important;
+      box-shadow: 0 4px 12px rgba(99,102,241,0.3);
+      transition: all 0.2s;
+    }
+     #reader__dashboard_section_csr button:hover {
+         transform: translateY(-1px);
+         box-shadow: 0 6px 16px rgba(99,102,241,0.4);
+     }
+    #reader__status_span {
+        display: none !important;
+    }
+
+    @keyframes shake{0%,100%{transform:translateX(0)}20%,60%{transform:translateX(-8px)}40%,80%{transform:translateX(8px)}}
+
+    /* ── High-Contrast Scanner Overlay ── */
+    #scan-overlay-full {
+      position: absolute;
+      inset: 0;
+      z-index: 50;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: all 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+      transform: scale(1.1);
+      backdrop-filter: blur(8px);
+    }
+
+    #scan-overlay-full.active {
+      opacity: 1;
+      pointer-events: auto;
+      transform: scale(1);
+    }
+
+    .overlay-success { background: rgba(16, 185, 129, 0.9); }
+    .overlay-exit { background: rgba(245, 158, 11, 0.9); }
+    .overlay-denied { background: rgba(244, 63, 94, 0.9); }
+
+    .scan-icon-container {
+      width: 100px;
+      height: 100px;
+      background: white;
+      border-radius: 2.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 1.5rem;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+      animation: iconPop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+    }
+
+    @keyframes iconPop {
+      0% { transform: scale(0) rotate(-10deg); opacity: 0; }
+      100% { transform: scale(1) rotate(0); opacity: 1; }
+    }
+
+    .cooldown-bar-container {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      height: 6px;
+      background: rgba(255,255,255,0.2);
+    }
+
+    .cooldown-bar {
+      height: 100%;
+      background: white;
+      width: 0%;
+      transition: width 4s linear;
+    }
+
+    .cooldown-active .cooldown-bar {
+      width: 100%;
+    }
+  </style>
+</head>
+
+<body class="bg-background-light font-display text-slate-900 antialiased">
+
+  <!-- ── Login Overlay ── -->
+  <div id="login-overlay">
+    <div class="login-card">
+      <div class="brand-icon">
+        <span class="material-symbols-outlined" style="color:#fff;font-size:32px">guardian</span>
+      </div>
+      <h2 class="text-white text-2xl font-black text-center mb-1">Security Portal</h2>
+      <p class="text-white/40 text-xs font-bold text-center uppercase tracking-widest mb-8">Personnel Access Only</p>
+
+      <form id="login-form">
+        <div class="login-field">
+          <span class="material-symbols-outlined field-icon">person</span>
+          <input type="text" id="login-username" placeholder="Personnel ID" autocomplete="username" required>
+        </div>
+        <div class="login-field">
+          <span class="material-symbols-outlined field-icon">lock</span>
+          <input type="password" id="login-password" placeholder="Passphrase" autocomplete="current-password" required>
+        </div>
+        <div id="login-error" class="hidden text-red-400 text-xs font-bold text-center mb-4">Verification failed. Access denied.</div>
+        <button type="submit" class="login-btn">Authenticate</button>
+      </form>
+
+      <div class="flex items-center justify-center gap-2 mt-8 opacity-20">
+        <span class="material-symbols-outlined text-white" style="font-size:16px">shield_lock</span>
+        <span class="text-white text-[10px] font-black uppercase tracking-[0.2em]">Encrypted Session</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="max-w-6xl mx-auto px-6 py-8 h-screen flex flex-col">
+    <!-- Header -->
+    <header class="flex items-center justify-between mb-8">
+      <div>
+        <h1 class="text-2xl font-black text-slate-900 flex items-center gap-3">
+            <div class="size-10 rounded-xl bg-indigo-600 flex items-center justify-center text-white shadow-lg shadow-indigo-600/20">
+                <span class="material-symbols-outlined">security_update_good</span>
+            </div>
+            Security & Access
+        </h1>
+        <p class="text-slate-500 text-sm font-semibold ml-13">Gate Personnel Scanner</p>
+      </div>
+      <div class="flex items-center gap-3">
+          <div class="text-right px-4 py-2 bg-white rounded-xl shadow-sm border border-slate-100">
+              <p id="current-time" class="text-slate-900 font-bold text-sm tracking-tight"></p>
+              <p class="text-[10px] font-black text-indigo-600 uppercase tracking-widest">Live Monitoring</p>
+          </div>
+          <button id="logout-btn" class="size-10 rounded-xl bg-white border border-slate-200 text-slate-400 hover:text-red-500 hover:border-red-100 transition-all">
+              <span class="material-symbols-outlined">logout</span>
+          </button>
+      </div>
+    </header>
+
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 flex-1 overflow-hidden pb-8">
+      <!-- Left: Scanner -->
+      <div class="lg:col-span-7 flex flex-col gap-6">
+        <div class="bg-white rounded-3xl p-8 border border-slate-100 shadow-sm flex-1 flex flex-col">
+          <div class="flex items-center justify-between mb-6">
+            <div>
+              <h2 class="text-lg font-bold text-slate-900">QR Scanner</h2>
+              <p class="text-xs text-slate-400 font-semibold">Active Point: Main Entrance</p>
+            </div>
+            <div class="flex items-center gap-2 px-3 py-1.5 bg-emerald-50 text-emerald-600 rounded-full">
+              <span class="size-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+              <span class="text-[10px] font-black uppercase">Sensor Ready</span>
+            </div>
+          </div>
+          
+          <div class="flex-1 bg-slate-50 rounded-2xl relative overflow-hidden flex items-center justify-center border-2 border-dashed border-slate-200">
+            <div id="reader" class="w-full h-full"></div>
+            
+            <!-- NEW High-Contrast Feedback Overlay -->
+            <div id="scan-overlay-full">
+                <div class="scan-icon-container">
+                    <span id="overlay-icon" class="material-symbols-outlined text-5xl font-bold">check_circle</span>
+                </div>
+                <h2 id="overlay-title" class="text-3xl font-black text-white mb-1">Welcome</h2>
+                <p id="overlay-name" class="text-white/80 font-bold text-lg mb-4">Student Name</p>
+                <div class="px-4 py-1.5 bg-white/20 rounded-full text-white text-[10px] font-black uppercase tracking-widest">
+                    Verification Authorized
+                </div>
+
+                <div class="cooldown-bar-container">
+                    <div id="cooldown-progress" class="cooldown-bar"></div>
+                </div>
+            </div>
+
+            <!-- Overlay for manual code input fallback if scanner fails -->
+            <div id="manual-entry" class="absolute bottom-4 left-4 right-4 hidden">
+                <div class="flex gap-2">
+                    <input type="text" id="manual-uid" placeholder="Enter Registration No." class="flex-1 h-12 rounded-xl border-slate-200 text-sm font-bold px-4">
+                    <button id="manual-process-btn" class="bg-slate-900 text-white px-6 rounded-xl font-bold">Process</button>
+                </div>
+            </div>
+          </div>
+
+
+          <div id="scan-feedback" class="mt-6 p-4 rounded-2xl border border-slate-100 hidden">
+             <!-- Dynamically filled -->
+          </div>
+        </div>
+
+        <!-- Quick Stats Overlay (Floating at bottom for mobile/smaller screens) -->
+        <div class="grid grid-cols-3 gap-4">
+            <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm">
+                <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Today's Entry</p>
+                <p id="entry-count" class="text-2xl font-black text-slate-900 leading-none">0</p>
+            </div>
+            <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm">
+                <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Total Inside</p>
+                <p id="inside-count" class="text-2xl font-black text-indigo-600 leading-none">0</p>
+            </div>
+            <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm">
+                <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Security Flags</p>
+                <p id="flag-count" class="text-2xl font-black text-rose-500 leading-none">0</p>
+            </div>
+        </div>
+      </div>
+
+      <!-- Right: Activity Feed -->
+      <div class="lg:col-span-5 flex flex-col overflow-hidden">
+        <div class="bg-white rounded-3xl flex-1 flex flex-col border border-slate-100 shadow-sm overflow-hidden text-sm">
+          <div class="px-6 py-6 border-b border-slate-50 flex items-center justify-between">
+            <div>
+              <h2 class="text-lg font-bold text-slate-900">Activity Logs</h2>
+              <p class="text-xs text-slate-400 font-semibold">Real-time Stream</p>
+            </div>
+            <span class="px-3 py-1 bg-slate-50 text-slate-500 rounded-lg text-[10px] font-black uppercase">Auto-Sync</span>
+          </div>
+          
+          <div id="activity-feed" class="flex-1 overflow-y-auto p-4 space-y-3 scroll-hide">
+            <!-- Feed items -->
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
+    import { 
+        getFirestore, doc, collection, query, where, orderBy, limit, 
+        onSnapshot, updateDoc, addDoc, getDoc, getDocs, serverTimestamp 
+    } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyBiNC6RwXqTachVrdOtxInzme10Pk281DU",
+      authDomain: "student-login-data-base.firebaseapp.com",
+      projectId: "student-login-data-base",
+      storageBucket: "student-login-data-base.firebasestorage.app",
+      messagingSenderId: "480696491383",
+      appId: "1:480696491383:web:8158fedf914d35d8f3d572",
+      measurementId: "G-P052S3CSVT"
+    };
+
+    // Initialize Firebase
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    // --- AUTH LOGIC ---
+    const PORTAL_USER = 'security';
+    const PORTAL_PASS = 'security1234';
+    const SESSION_KEY = 'portalLoggedIn';
+    const overlay = document.getElementById('login-overlay');
+
+    if (sessionStorage.getItem(SESSION_KEY) === 'true') {
+        overlay.style.display = 'none';
+        startPortal();
+    }
+
+    document.getElementById('login-form').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const user = document.getElementById('login-username').value.trim();
+        const pass = document.getElementById('login-password').value;
+        const err = document.getElementById('login-error');
+
+        if (user === PORTAL_USER && pass === PORTAL_PASS) {
+            sessionStorage.setItem(SESSION_KEY, 'true');
+            err.classList.add('hidden');
+            overlay.classList.add('fade-out');
+            overlay.addEventListener('transitionend', () => {
+                overlay.remove();
+                startPortal();
+            }, { once: true });
+        } else {
+            err.classList.remove('hidden');
+            const card = document.querySelector('.login-card');
+            card.style.animation = 'none';
+            card.offsetHeight;
+            card.style.animation = 'shake 0.4s ease';
+        }
+    });
+
+    document.getElementById('logout-btn').addEventListener('click', () => {
+        sessionStorage.clear();
+        window.location.reload();
+    });
+
+    // --- CORE PORTAL LOGIC ---
+    let html5QrScanner;
+
+    function startPortal() {
+        startClock();
+        startScanner();
+        startListeners();
+    }
+
+    function startClock() {
+        const update = () => {
+            const now = new Date();
+            document.getElementById('current-time').textContent = now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', second:'2-digit'});
+        };
+        update();
+        setInterval(update, 1000);
+    }
+
+    function startScanner() {
+        html5QrScanner = new Html5QrcodeScanner("reader", { 
+            fps: 15, // Higher FPS for better response
+            qrbox: {width: 280, height: 280},
+            showTorchButtonIfSupported: true,
+            rememberLastUsedCamera: true,
+            aspectRatio: 1.0
+        }, false);
+        
+        html5QrScanner.render(onScanSuccess, onScanFailure);
+    }
+
+    function onScanSuccess(decodedText) {
+        if (window.lastScan === decodedText && (Date.now() - window.lastScanTime < 4000)) return;
+        window.lastScan = decodedText;
+        window.lastScanTime = Date.now();
+        
+        processStudentUID(decodedText);
+    }
+
+    function onScanFailure(error) { /* ignore frequent read errors */ }
+
+    async function processStudentUID(uid) {
+        const feedback = document.getElementById('scan-feedback');
+        feedback.classList.remove('hidden');
+        feedback.className = "mt-6 p-6 rounded-2xl border bg-indigo-50 border-indigo-100 animate-pulse";
+        feedback.innerHTML = `
+            <div class="flex items-center gap-4">
+                <div class="size-12 rounded-xl bg-indigo-500 flex items-center justify-center text-white">
+                    <span class="material-symbols-outlined animate-spin text-2xl">sync</span>
+                </div>
+                <div>
+                    <p class="font-black text-indigo-900 tracking-tight">Verifying Identification...</p>
+                    <p class="text-xs text-indigo-400 font-bold uppercase tracking-widest">${uid}</p>
+                </div>
+            </div>
+        `;
+
+        try {
+            // Find student by ID or Register No or UID (Robust lookup matching Admin logic)
+            const queries = [
+                getDoc(doc(db, "students", uid)),
+                getDocs(query(collection(db, "students"), where("studentId", "==", uid), limit(1))),
+                getDocs(query(collection(db, "students"), where("email", "==", uid), limit(1))),
+                getDocs(query(collection(db, "students"), where("uid", "==", uid), limit(1)))
+            ];
+
+            const [s1, s2, s3, s4] = await Promise.all(queries);
+            
+            let studentDoc = s1.exists() ? s1 : (!s2.empty ? s2.docs[0] : (!s3.empty ? s3.docs[0] : (!s4.empty ? s4.docs[0] : null)));
+
+            if (!studentDoc) {
+                showFeedback("Access Denied", "No student record found for this identifier.", "denied", uid);
+                await logAccess(uid, "denied", "Unrecognized ID", "Main Gate");
+                return;
+            }
+
+            const data = studentDoc.data();
+            const lookupId = studentDoc.id; // Internal Doc ID
+            const portalUid = data.uid || lookupId; // Preferred identifier for student history sync
+
+            const currentStatus = data.campusStatus || "outside";
+            const newStatus = currentStatus === "inside" ? "outside" : "inside";
+            const type = newStatus === "inside" ? "entry" : "exit";
+
+            // Update student
+            const updatePayload = {
+                campusStatus: newStatus,
+                lastGate: "Main Gate",
+                updatedAt: serverTimestamp()
+            };
+            if (type === 'entry') updatePayload.lastEntryTime = serverTimestamp();
+            else updatePayload.lastExitTime = serverTimestamp();
+
+            await updateDoc(doc(db, "students", lookupId), updatePayload);
+
+            // Log access
+            await logAccess(portalUid, type, data.displayName, "Main Gate");
+
+            showFeedback(data.displayName, `Campus ${type} authorized successfully.`, type, lookupId, data.faculty);
+
+        } catch (err) {
+            console.error(err);
+            showFeedback("Processing Error", "Failed to communicate with database.", "denied", uid);
+        }
+    }
+
+    async function logAccess(uid, type, name, gate) {
+        return addDoc(collection(db, "accessLogs"), {
+            uid: uid,
+            name: name,
+            type: type,
+            gate: gate,
+            timestamp: serverTimestamp()
+        });
+    }
+
+    function showFeedback(title, msg, type, id, subtitle) {
+        const feedback = document.getElementById('scan-feedback');
+        const isEntry = type === "entry";
+        const isDenied = type === "denied";
+        
+        let colorClasses = "bg-emerald-50 border-emerald-100 text-emerald-900";
+        let icon = "check_circle";
+        let iconColor = "bg-emerald-500";
+
+        if (type === "outside" || type === "exit") {
+            colorClasses = "bg-amber-50 border-amber-100 text-amber-900";
+            icon = "logout";
+            iconColor = "bg-amber-500";
+        } else if (isDenied) {
+            colorClasses = "bg-rose-50 border-rose-100 text-rose-900";
+            icon = "cancel";
+            iconColor = "bg-rose-500";
+        }
+
+        feedback.className = `mt-6 p-6 rounded-2xl border ${colorClasses} animate-in fade-in slide-in-from-bottom duration-300`;
+        feedback.innerHTML = `
+            <div class="flex items-center gap-4">
+                <div class="size-14 rounded-2xl ${iconColor} flex items-center justify-center text-white shadow-lg">
+                    <span class="material-symbols-outlined !text-3xl">${icon}</span>
+                </div>
+                <div class="flex-1">
+                    <div class="flex items-center justify-between">
+                        <h3 class="font-black text-xl tracking-tight">${title}</h3>
+                        <span class="text-[10px] font-black uppercase tracking-widest opacity-50">${id}</span>
+                    </div>
+                    <p class="text-sm font-bold opacity-70">${msg}</p>
+                    ${subtitle ? `<p class="text-[10px] uppercase font-black tracking-widest mt-1 opacity-40">${subtitle}</p>` : ''}
+                </div>
+            </div>
+        `;
+        
+        // --- NEW FULLSCREEN OVERLAY LOGIC ---
+        const overlay = document.getElementById('scan-overlay-full');
+        const oIcon = document.getElementById('overlay-icon');
+        const oTitle = document.getElementById('overlay-title');
+        const oName = document.getElementById('overlay-name');
+        const oProgress = document.getElementById('cooldown-progress');
+
+        overlay.classList.remove('overlay-success', 'overlay-exit', 'overlay-denied');
+        
+        if (isDenied) {
+            overlay.classList.add('overlay-denied');
+            oIcon.textContent = "cancel";
+            oIcon.className = "material-symbols-outlined text-5xl font-bold text-rose-600";
+            oTitle.textContent = "Access Denied";
+            oName.textContent = "Invalid Credential";
+        } else if (type === "exit" || type === "outside") {
+            overlay.classList.add('overlay-exit');
+            oIcon.textContent = "logout";
+            oIcon.className = "material-symbols-outlined text-5xl font-bold text-amber-600";
+            oTitle.textContent = "Safe Travels";
+            oName.textContent = title;
+        } else {
+            overlay.classList.add('overlay-success');
+            oIcon.textContent = "check_circle";
+            oIcon.className = "material-symbols-outlined text-5xl font-bold text-emerald-600";
+            oTitle.textContent = "Welcome Inside";
+            oName.textContent = title;
+        }
+
+        // Haptic Feedback
+        if (typeof navigator.vibrate === "function") {
+            navigator.vibrate(isDenied ? [100, 50, 100] : 100);
+        }
+
+        // Trigger Overlay
+        overlay.classList.add('active');
+        
+        // Trigger Cooldown Visual
+        oProgress.style.transition = 'none';
+        oProgress.style.width = '0%';
+        oProgress.offsetHeight; // force reflow
+        oProgress.style.transition = 'width 4s linear';
+        oProgress.style.width = '100%';
+
+        setTimeout(() => {
+            overlay.classList.remove('active');
+            feedback.classList.add('hidden');
+        }, 4000);
+    }
+
+
+    const userNameCache = new Map();
+
+    async function resolveName(uid) {
+        if (!uid) return "Unknown User";
+        if (userNameCache.has(uid)) return userNameCache.get(uid);
+
+        try {
+            const queries = [
+                getDoc(doc(db, "students", uid)),
+                getDocs(query(collection(db, "students"), where("studentId", "==", uid), limit(1))),
+                getDocs(query(collection(db, "students"), where("email", "==", uid), limit(1))),
+                getDocs(query(collection(db, "students"), where("uid", "==", uid), limit(1)))
+            ];
+            const [s1, s2, s3, s4] = await Promise.all(queries);
+            const docSnap = s1.exists() ? s1 : (!s2.empty ? s2.docs[0] : (!s3.empty ? s3.docs[0] : (!s4.empty ? s4.docs[0] : null)));
+            
+            const name = docSnap ? (docSnap.data().displayName || "Unlabeled User") : "Unknown User";
+            userNameCache.set(uid, name);
+            return name;
+        } catch (e) {
+            return "Unknown User";
+        }
+    }
+
+    function startListeners() {
+        // Activity Feed Listener
+        const logsQuery = query(collection(db, "accessLogs"), orderBy("timestamp", "desc"), limit(20));
+        onSnapshot(logsQuery, async snap => {
+            const feed = document.getElementById('activity-feed');
+            let todayCount = 0;
+            let flags = 0;
+            const startOfToday = new Date().setHours(0,0,0,0);
+
+            // Pre-resolve names for unknown users
+            const logsWithNames = await Promise.all(snap.docs.map(async d => {
+                const log = d.data();
+                const ts = log.timestamp?.toDate ? log.timestamp.toDate() : new Date();
+                
+                if (ts.getTime() > startOfToday) {
+                    if (log.type === "entry") todayCount++;
+                    if (log.type === "denied" || log.type === "bypass") flags++;
+                }
+
+                let displayName = log.name;
+                if (!displayName || displayName === "Unknown User" || displayName === "N/A") {
+                    displayName = await resolveName(log.uid);
+                }
+
+                return { ...log, displayName, ts };
+            }));
+
+            let html = "";
+            logsWithNames.forEach(log => {
+              const isEntry = log.type === "entry";
+              const isDenied = log.type === "denied";
+              const color = isDenied ? "text-rose-600 bg-rose-50" : (isEntry ? "text-emerald-600 bg-emerald-50" : "text-amber-600 bg-amber-50");
+              const icon = isDenied ? "warning" : (isEntry ? "login" : "logout");
+
+              html += `
+                <div class="flex items-center gap-3 p-3 rounded-2xl bg-white border border-slate-50 shadow-sm transition-all hover:border-slate-100 animate-in fade-in slide-in-from-right duration-300">
+                    <div class="size-9 rounded-xl ${color} flex items-center justify-center">
+                        <span class="material-symbols-outlined text-lg font-bold">${icon}</span>
+                    </div>
+                    <div class="flex-1">
+                        <p class="text-slate-900 font-bold text-xs">${log.displayName}</p>
+                        <p class="text-[10px] text-slate-400 font-medium">${log.gate} &bull; ${log.ts.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</p>
+                    </div>
+                    <div class="text-[9px] font-black uppercase tracking-tight ${color.split(' ')[0]} opacity-60">
+                        ${log.type}
+                    </div>
+                </div>
+              `;
+            });
+            feed.innerHTML = html || `<p class="p-8 text-center text-slate-400 text-xs font-bold">Waiting for live sensor data...</p>`;
+            
+            document.getElementById('entry-count').textContent = todayCount;
+            document.getElementById('flag-count').textContent = flags;
+        });
+
+        // Occupancy Listener
+        const occupancyQuery = query(collection(db, "students"), where("campusStatus", "==", "inside"));
+        onSnapshot(occupancyQuery, snap => {
+            const emails = new Set();
+            snap.docs.forEach(d => {
+                const data = d.data();
+                if (data.email) emails.add(data.email.toLowerCase());
+            });
+            document.getElementById('inside-count').textContent = emails.size;
+        });
+    }
+
+    // Manual processing bridge
+    document.getElementById('manual-process-btn').addEventListener('click', () => {
+        const uid = document.getElementById('manual-uid').value.trim();
+        if (uid) processStudentUID(uid);
+    });
+
+  </script>
+</body>
+</html>

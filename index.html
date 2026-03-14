@@ -1,0 +1,1661 @@
+<!DOCTYPE html>
+<html class="light" lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>Smart Campus Access</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
+        rel="stylesheet" />
+    <script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: { "primary": "#3211d4", "background-light": "#f6f6f8", "background-dark": "#131022" },
+                    fontFamily: { "display": ["Inter", "sans-serif"] },
+                    borderRadius: { "DEFAULT": "0.5rem", "lg": "1rem", "xl": "1.5rem", "full": "9999px" },
+                },
+            },
+        }
+    </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+            margin: 0;
+            overflow: hidden;
+            height: 100dvh;
+            min-height: 884px;
+        }
+
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+
+        /* ── SPA Shell ── */
+        #app {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        .screen {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            overflow-y: auto;
+            transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+            will-change: transform, opacity;
+        }
+
+        .screen.hidden-left {
+            transform: translateX(-100%);
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .screen.hidden-right {
+            transform: translateX(100%);
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .screen.active {
+            transform: translateX(0);
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        /* ── Auth screens have no bottom nav ── */
+        .auth-screen {
+            height: 100%;
+        }
+
+        /* ── App screens reserve space for bottom nav ── */
+        .app-screen-body {
+            padding-bottom: 80px;
+        }
+
+        /* ── Shared Bottom Nav ── */
+        #bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 100%;
+            max-width: 480px;
+            background: rgba(255, 255, 255, 0.92);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-top: 1px solid rgba(0, 0, 0, 0.06);
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            padding: 10px 12px 18px;
+            z-index: 100;
+            transition: transform 0.3s ease, opacity 0.3s ease;
+        }
+
+        #bottom-nav.hidden-nav {
+            transform: translateX(-50%) translateY(100%);
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .dark #bottom-nav {
+            background: rgba(19, 16, 34, 0.92);
+            border-top-color: rgba(255, 255, 255, 0.06);
+        }
+
+        .nav-btn {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 3px;
+            cursor: pointer;
+            background: none;
+            border: none;
+            padding: 4px 12px;
+            color: #9ca3af;
+            transition: color 0.2s;
+        }
+
+        .nav-btn.active-tab {
+            color: #3211d4;
+        }
+
+        .nav-btn .nav-icon {
+            font-size: 24px;
+        }
+
+        .nav-btn .nav-label {
+            font-size: 10px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        /* ── Loading splash ── */
+        #loading-overlay {
+            position: fixed;
+            inset: 0;
+            background: #3211d4;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            transition: opacity 0.4s ease;
+        }
+
+        #loading-overlay.fade-out {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        /* Utilities */
+        .ios-shadow {
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, .05), 0 2px 4px -1px rgba(0, 0, 0, .03);
+        }
+
+        @keyframes shake {
+
+            0%,
+            100% {
+                transform: translateX(0);
+            }
+
+            20% {
+                transform: translateX(-6px);
+            }
+
+            40% {
+                transform: translateX(6px);
+            }
+
+            60% {
+                transform: translateX(-4px);
+            }
+
+            80% {
+                transform: translateX(4px);
+            }
+        }
+
+        .shake {
+            animation: shake 0.4s ease;
+        }
+
+        .scroll-hide::-webkit-scrollbar {
+            display: none;
+        }
+
+        /* ── Custom Modal ── */
+        #custom-modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            z-index: 2000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        #custom-modal-overlay.active {
+            display: flex;
+            opacity: 1;
+        }
+
+        #custom-modal {
+            background: white;
+            width: 100%;
+            max-width: 340px;
+            border-radius: 24px;
+            padding: 24px;
+            text-align: center;
+            transform: scale(0.9);
+            transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        }
+
+        .dark #custom-modal {
+            background: #1e1b33;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        #custom-modal-overlay.active #custom-modal {
+            transform: scale(1);
+        }
+
+        /* ── QR Modal ── */
+        #qr-modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(50, 17, 212, 0.4);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            z-index: 2000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        #qr-modal-overlay.active {
+            display: flex;
+            opacity: 1;
+        }
+
+        #qr-modal {
+            background: white;
+            width: 100%;
+            max-width: 360px;
+            border-radius: 32px;
+            padding: 32px;
+            text-align: center;
+            transform: translateY(20px);
+            transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+            box-shadow: 0 30px 60px rgba(50, 17, 212, 0.2);
+        }
+
+        .dark #qr-modal {
+            background: #1e1b33;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        #qr-modal-overlay.active #qr-modal {
+            transform: translateY(0);
+        }
+
+        /* ── Glassmorphism Styles ── */
+        .glass-bg {
+            background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        .glass-card {
+            background: rgba(255, 255, 255, 0.07);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.14);
+            border-radius: 2rem;
+            box-shadow: 0 40px 100px rgba(0, 0, 0, 0.4);
+        }
+
+        .glass-input {
+            background: rgba(255, 255, 255, 0.07) !important;
+            border: 1px solid rgba(255, 255, 255, 0.15) !important;
+            color: white !important;
+        }
+
+        .glass-input::placeholder {
+            color: rgba(255, 255, 255, 0.3);
+        }
+
+        .glass-input:focus {
+            border-color: #6366f1 !important;
+            background: rgba(99, 102, 241, 0.1) !important;
+        }
+
+
+    </style>
+</head>
+
+<body class="bg-background-light dark:bg-background-dark font-display text-[#100d1b] dark:text-white antialiased">
+
+    <!-- ══════════ LOADING SPLASH ══════════ -->
+    <div id="loading-overlay">
+        <span class="material-symbols-outlined text-white text-7xl mb-4"
+            style="font-variation-settings:'FILL' 1,'wght' 300,'opsz' 48;">domain_verification</span>
+        <p class="text-white/80 text-sm font-semibold tracking-widest uppercase">Smart Campus Access</p>
+    </div>
+
+    <!-- ══════════ SHARED BOTTOM NAV ══════════ -->
+    <nav id="bottom-nav" class="hidden-nav">
+        <button class="nav-btn active-tab" id="nav-home" onclick="navTo('dashboard')">
+            <span class="material-symbols-outlined nav-icon" id="icon-home">home</span>
+            <span class="nav-label">Home</span>
+        </button>
+        <button class="nav-btn" id="nav-id" onclick="navTo('id-card')">
+            <span class="material-symbols-outlined nav-icon">badge</span>
+            <span class="nav-label">ID Card</span>
+        </button>
+        <button class="nav-btn" id="nav-history" onclick="navTo('history')">
+            <span class="material-symbols-outlined nav-icon">history</span>
+            <span class="nav-label">History</span>
+        </button>
+        <button class="nav-btn" id="nav-profile" onclick="navTo('profile')">
+            <span class="material-symbols-outlined nav-icon">person</span>
+            <span class="nav-label">Profile</span>
+        </button>
+    </nav>
+
+    <!-- ══════════ SPA APP ══════════ -->
+    <div id="app" class="bg-background-light dark:bg-background-dark">
+
+        <!-- ─────────────── SCREEN: WELCOME ─────────────── -->
+        <div id="screen-welcome" class="screen active glass-bg">
+            <div class="glass-card w-full max-w-[420px] p-10 m-6 flex flex-col gap-8 animate-in fade-in zoom-in duration-500">
+                <div class="flex flex-col items-center gap-4">
+                    <div class="size-16 rounded-2xl bg-indigo-500/20 flex items-center justify-center border border-indigo-500/30">
+                        <span class="material-symbols-outlined !text-4xl text-indigo-400">domain_verification</span>
+                    </div>
+                    <div class="text-center">
+                        <h1 class="text-white text-3xl font-black tracking-tight leading-none">Smart Campus Access</h1>
+                        <p class="text-white/40 text-sm font-bold mt-2 uppercase tracking-widest">Digital Authentication</p>
+                    </div>
+                </div>
+
+                <div class="flex flex-col gap-4">
+                    <button class="bg-indigo-600 hover:bg-indigo-500 text-white h-14 rounded-xl font-bold text-lg shadow-lg shadow-indigo-600/25 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+                        onclick="navTo('login')">
+                        <span class="material-symbols-outlined">person</span>
+                        Continue as Student
+                    </button>
+                    
+                    <p class="text-white/30 text-[11px] font-medium text-center px-4 leading-relaxed">
+                        By logging in, you agree to our terms of service and security protocols for campus safety.
+                    </p>
+                </div>
+
+                <div class="pt-6 border-t border-white/10">
+                    <div class="flex items-center justify-center gap-2 opacity-30">
+                        <span class="material-symbols-outlined text-sm text-white">school</span>
+                        <p class="text-[10px] font-black tracking-[0.2em] uppercase text-white">University Management</p>
+                    </div>
+                </div>
+            </div>
+        </div><!-- /welcome -->
+
+
+        <!-- ─────────────── SCREEN: STUDENT LOGIN ─────────────── -->
+        <div id="screen-login" class="screen hidden-right glass-bg">
+            <div class="glass-card w-full max-w-[420px] p-10 m-6 flex flex-col gap-6 animate-in slide-in-from-right duration-500">
+                <div class="flex items-center justify-between mb-4">
+                    <button id="btn-back-to-welcome" class="size-10 rounded-xl bg-white/5 flex items-center justify-center text-white hover:bg-white/10 transition-colors">
+                        <span class="material-symbols-outlined">arrow_back_ios_new</span>
+                    </button>
+                    <div class="size-10 rounded-xl bg-indigo-500 shadow-lg shadow-indigo-500/50 flex items-center justify-center text-white">
+                        <span class="material-symbols-outlined !text-xl">security</span>
+                    </div>
+                </div>
+
+                <div>
+                    <h1 class="text-white text-3xl font-black tracking-tight font-display">Student Login</h1>
+                    <p class="text-white/40 text-sm font-bold mt-1 tracking-tight">Access your digital campus identity</p>
+                </div>
+
+                <div id="login-error" class="hidden px-4 py-3 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-xs font-bold animate-shake">
+                    <div class="flex items-center gap-2">
+                        <span class="material-symbols-outlined text-sm">error</span>
+                        <span id="login-error-text">Identity verification failed</span>
+                    </div>
+                </div>
+
+                <div class="space-y-4">
+                    <div class="space-y-1.5">
+                        <label class="text-white/50 text-[11px] font-black uppercase tracking-widest ml-1">Email / Registration</label>
+                        <div class="relative flex items-center">
+                            <span class="material-symbols-outlined absolute left-4 text-white/30 text-lg">person</span>
+                            <input id="login-email" class="glass-input w-full rounded-xl h-14 pl-12 pr-4 outline-none transition-all placeholder:text-white/20 font-bold text-sm"
+                                placeholder="name@university.edu" type="text" autocomplete="email" />
+                        </div>
+                    </div>
+
+                    <div class="space-y-1.5">
+                        <label class="text-white/50 text-[11px] font-black uppercase tracking-widest ml-1">Secure Password</label>
+                        <div class="relative flex items-center">
+                            <span class="material-symbols-outlined absolute left-4 text-white/30 text-lg">lock</span>
+                            <input id="login-password" class="glass-input w-full rounded-xl h-14 pl-12 pr-12 outline-none transition-all placeholder:text-white/20 font-bold text-sm"
+                                placeholder="••••••••" type="password" autocomplete="current-password" />
+                            <button id="toggle-password" type="button" class="absolute right-4 text-white/20 hover:text-white transition-colors">
+                                <span id="eye-icon" class="material-symbols-outlined text-lg">visibility</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="pt-4">
+                        <button id="btn-login" class="bg-indigo-600 hover:bg-indigo-500 text-white w-full h-14 rounded-xl font-black text-lg shadow-lg shadow-indigo-600/25 active:scale-[0.98] transition-all flex items-center justify-center gap-2">
+                            Sign In
+                        </button>
+                    </div>
+
+                    <div class="flex items-center justify-center gap-4 py-2">
+                        <div class="h-px bg-white/10 flex-1"></div>
+                        <span class="text-white/20 text-[10px] font-black uppercase tracking-widest">Authentication</span>
+                        <div class="h-px bg-white/10 flex-1"></div>
+                    </div>
+
+                    <div class="flex justify-center gap-3">
+                        <button class="flex flex-col items-center gap-2 group opacity-40 hover:opacity-100 transition-opacity">
+                            <div class="size-12 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-white">
+                                <span class="material-symbols-outlined !text-2xl">face</span>
+                            </div>
+                            <span class="text-[9px] font-black text-white uppercase tracking-widest">Face ID</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div><!-- /login screen -->
+            <footer class="p-8 text-center">
+                <p class="text-white/20 text-[10px] font-black uppercase tracking-[0.2em]">
+                    Digital Campus Identity v2.0
+                </p>
+                <div class="mt-6 flex justify-center">
+                    <div class="w-32 h-1 bg-gray-300 dark:bg-gray-700 rounded-full"></div>
+                </div>
+            </footer>
+        </div><!-- /login -->
+
+
+        <!-- ─────────────── SCREEN: HOME DASHBOARD ─────────────── -->
+        <div id="screen-dashboard" class="screen hidden-right bg-background-light dark:bg-background-dark">
+            <div
+                class="relative flex flex-col max-w-md mx-auto min-h-screen bg-background-light dark:bg-background-dark app-screen-body">
+                <header
+                    class="flex items-center px-6 pt-8 pb-4 justify-between sticky top-0 bg-white/95 dark:bg-background-dark/95 backdrop-blur-md z-10 rounded-b-3xl shadow-sm">
+                    <div class="flex items-center gap-3">
+                        <div id="dashboard-avatar"
+                            class="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-12 border-2 border-primary/20"
+                            style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuCJQ9S0s5AfOFBUiVg6bTtj3mugM1221WJYFBMFQTZveaK7-JUhQPoD6WBjAWty3cjFIcgQYlMKrFWXnAPkux-wnjru0luC_0703uxLcold6XNKG9vBmxJO2gnmI3ihLselg6Q0GXK97fDPW5E9sv1fA-okgGpW2-k2XcAd0rFrKmI1FS7K5jlOjykmBwmUcBEZ_mRCNf9N1D320RSpN766XdJrh-rK884MrvibTT9uYRYSZIJbC0jQJ0fKHY_3KmKp9M_RsissqpI");'>
+                        </div>
+                        <div>
+                            <p id="dashboard-greeting"
+                                class="text-xs text-[#594c9a] dark:text-primary/70 font-bold uppercase tracking-widest">
+                                Good Morning</p>
+                            <h2 id="dashboard-name"
+                                class="text-[#100d1b] dark:text-white text-2xl font-black leading-tight tracking-tight">Student</h2>
+                        </div>
+                    </div>
+
+                </header>
+                <main class="flex-1 px-6 py-2">
+                    <div class="mt-2 @container">
+                        <div
+                            class="flex flex-col items-stretch justify-start rounded-xl shadow-sm border border-gray-100 dark:border-white/5 bg-white dark:bg-[#1f1b3d] overflow-hidden">
+                            <div class="w-full bg-center bg-no-repeat aspect-[21/9] bg-cover relative"
+                                style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuC1dT8_DnC1YuZobjjqBktaWT3uv9lCTeJoXimd53paJv5Ug7EG5osTmENzTj5OlRzp3t9s86MSvUhNNTq-fYWuHGnvALY_uatYY9IAlDeBbWoM6jaTeXq4c__dy8z_HjbBAWHP4EFHzgjt3OcsjBq-8G--rWyjzs5uhoVeRL_eWfrqX5GNaiKgidsVEN56EYpyuBUp9n8cjwLYY1TIellnk9yXThfreCUuJxhCaa7XBQxW-BqxRyNMaaHYlSHrVDH9JaXietvOMgs");'>
+                                <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
+                                <div class="absolute bottom-4 left-4 flex items-center gap-2">
+                                    <span id="dash-status-dot"
+                                        class="flex h-3 w-3 rounded-full bg-green-500 animate-pulse"></span>
+                                    <span id="dash-status-label" class="text-white text-sm font-semibold">Active
+                                        Session</span>
+                                </div>
+                            </div>
+                            <div class="flex flex-col gap-2 p-5">
+                                <p
+                                    class="text-[#594c9a] dark:text-primary/70 text-sm font-semibold uppercase tracking-wide">
+                                    Live Status</p>
+                                <p id="dash-campus-status"
+                                    class="text-[#100d1b] dark:text-white text-xl font-bold tracking-tight">Loading...
+                                </p>
+                                <div class="flex items-center justify-between mt-1">
+                                    <p id="dash-last-gate" class="text-gray-500 dark:text-gray-400 text-sm">—</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="py-6">
+                        <button id="btn-show-dashboard-qr"
+                            class="w-full group relative flex flex-col items-center justify-center overflow-hidden rounded-xl py-8 px-6 bg-primary text-white shadow-[0_20px_40px_-15px_rgba(50,17,212,0.4)] transition-all active:scale-95">
+                            <div class="mb-4 bg-white/20 p-4 rounded-full">
+                                <span class="material-symbols-outlined text-4xl"
+                                    style="font-variation-settings:'wght' 300;">qr_code_2</span>
+                            </div>
+                            <span class="text-lg font-bold tracking-tight">Show QR for Entry / Exit</span>
+                            <p class="text-white/70 text-xs mt-1 font-medium">Hold near scanner to verify access</p>
+                            <div
+                                class="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                            </div>
+                        </button>
+                    </div>
+                    <div class="flex items-center justify-between mb-2">
+                        <h3 class="text-[#100d1b] dark:text-white text-lg font-bold tracking-tight">Activity Log</h3>
+                        <button class="text-sm font-semibold text-primary dark:text-primary/80"
+                            onclick="navTo('history')">View History</button>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div
+                            class="flex flex-col gap-4 rounded-xl border border-gray-100 dark:border-white/5 bg-white dark:bg-[#1f1b3d] p-5 shadow-sm">
+                            <div
+                                class="size-10 rounded-lg bg-green-50 dark:bg-green-500/10 flex items-center justify-center">
+                                <span class="material-symbols-outlined text-green-600 dark:text-green-400">login</span>
+                            </div>
+                            <div class="flex flex-col gap-1">
+                                <h2 id="dash-entry-time" class="text-[#100d1b] dark:text-white text-lg font-bold">—</h2>
+                                <p
+                                    class="text-[#594c9a] dark:text-gray-400 text-xs font-semibold uppercase tracking-wider">
+                                    Last Entry Time</p>
+                            </div>
+                        </div>
+                        <div
+                            class="flex flex-col gap-4 rounded-xl border border-gray-100 dark:border-white/5 bg-white dark:bg-[#1f1b3d] p-5 shadow-sm">
+                            <div
+                                class="size-10 rounded-lg bg-red-50 dark:bg-red-500/10 flex items-center justify-center">
+                                <span class="material-symbols-outlined text-red-600 dark:text-red-400">logout</span>
+                            </div>
+                            <div class="flex flex-col gap-1">
+                                <h2 id="dash-exit-time" class="text-[#100d1b] dark:text-white text-lg font-bold">—</h2>
+                                <p id="dash-exit-label"
+                                    class="text-[#594c9a] dark:text-gray-400 text-xs font-semibold uppercase tracking-wider">
+                                    Last Exit</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div
+                        class="mt-6 p-4 bg-primary/5 dark:bg-primary/10 rounded-xl border border-primary/10 flex gap-3 items-start">
+                        <span class="material-symbols-outlined text-primary text-xl">info</span>
+                        <p class="text-xs text-[#594c9a] dark:text-gray-300 leading-relaxed font-medium">
+                            Please ensure your mobile screen brightness is set to high for faster QR verification at the
+                            gate.
+                        </p>
+                    </div>
+                    <div class="mt-4 mb-2">
+                        <button id="btn-logout"
+                            class="w-full flex items-center justify-center gap-2 rounded-xl h-12 border border-red-200 dark:border-red-800 text-red-500 dark:text-red-400 font-semibold text-sm hover:bg-red-50 dark:hover:bg-red-900/20 transition-all">
+                            <span class="material-symbols-outlined text-base">logout</span>
+                            Sign Out
+                        </button>
+                    </div>
+                </main>
+            </div>
+        </div><!-- /dashboard -->
+
+
+        <!-- ─────────────── SCREEN: DIGITAL STUDENT ID ─────────────── -->
+        <div id="screen-id-card" class="screen hidden-right bg-background-light dark:bg-background-dark">
+            <div
+                class="flex flex-col max-w-md mx-auto min-h-screen bg-background-light dark:bg-background-dark app-screen-body">
+                <header
+                    class="flex items-center bg-background-light dark:bg-background-dark p-4 pb-2 justify-between sticky top-0 z-10">
+                    <div class="text-primary flex size-10 items-center justify-center rounded-full hover:bg-primary/10 cursor-pointer transition-colors"
+                        onclick="navTo('dashboard')">
+                        <span class="material-symbols-outlined">arrow_back_ios_new</span>
+                    </div>
+                    <h2
+                        class="text-slate-900 dark:text-white text-lg font-bold leading-tight tracking-[-0.015em] flex-1 text-center pr-10">
+                        Digital Student ID</h2>
+                </header>
+                <main class="flex-1 overflow-y-auto px-4 pb-8">
+                    <div class="mt-4 mb-6 @container">
+                        <div
+                            class="flex flex-col items-stretch justify-start rounded-xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 overflow-hidden">
+                            <div class="relative p-6 pb-2 flex flex-col items-center">
+                                <div
+                                    class="absolute inset-0 opacity-[0.03] dark:opacity-[0.05] pointer-events-none overflow-hidden flex flex-wrap gap-4 rotate-12">
+                                    <span class="text-4xl font-bold uppercase">Engineering</span>
+                                    <span class="text-4xl font-bold uppercase">Engineering</span>
+                                    <span class="text-4xl font-bold uppercase">Engineering</span>
+                                </div>
+                                <div class="relative">
+                                    <div id="id-avatar"
+                                        class="size-32 rounded-2xl bg-center bg-no-repeat bg-cover border-4 border-white dark:border-slate-700 shadow-lg"
+                                        style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuCO3vbNZlWiecpazerztiz7fmumJhJoJWL1kkK4uJr3_nLHUJ_8JTk05oZBDvbXqBMdyvrb7MXCkUDEZ2jDKwtjssPAJAVV6x12u0UqSgWjf7FCS3PbjhbtW0u-IOgkR66MjRAM-GlR_0T5Efc5I50ZbcdjRJahrr2lPeWgYoS5VtGOIu3cWUCz9y6q-kKJ56At2rFSE8qLY3YefRvX4UF6BKuXd2uPADVDKjLi87zcKjs57BqX_44Sti_4lwedEywYmYDsPJCCVNw");'>
+                                    </div>
+                                    <div
+                                        class="absolute -bottom-2 -right-2 bg-green-500 border-4 border-white dark:border-slate-800 size-6 rounded-full">
+                                    </div>
+                                </div>
+                                <div class="flex flex-col items-center mt-4 gap-1">
+                                    <p id="id-faculty"
+                                        class="text-primary dark:text-indigo-400 text-sm font-semibold tracking-wide uppercase">
+                                        Faculty of Engineering</p>
+                                    <p id="id-name"
+                                        class="text-slate-900 dark:text-white text-2xl font-bold leading-tight tracking-[-0.015em]">
+                                        —</p>
+                                    <p id="id-reg" class="text-slate-500 dark:text-slate-400 text-base font-medium">—
+                                    </p>
+                                </div>
+                            </div>
+                            <div class="px-6 flex justify-center gap-2 pb-6">
+                                <span
+                                    class="inline-flex items-center px-3 py-1 rounded-full bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 text-xs font-bold uppercase tracking-wider">
+                                    <span class="size-1.5 rounded-full bg-green-500 mr-2"></span>Valid
+                                </span>
+                                <span id="id-location-badge"
+                                    class="inline-flex items-center px-3 py-1 rounded-full bg-primary/10 dark:bg-primary/20 text-primary dark:text-indigo-300 text-xs font-bold uppercase tracking-wider">
+                                    <span class="material-symbols-outlined text-[14px] mr-1">location_on</span><span
+                                        id="id-location-text">Loading...</span>
+                                </span>
+                            </div>
+                            <div
+                                class="bg-slate-50 dark:bg-slate-900/50 p-8 flex flex-col items-center border-t border-slate-100 dark:border-slate-700">
+                                <div class="mb-6 flex flex-col items-center gap-1">
+                                    <h4
+                                        class="text-slate-900 dark:text-white text-sm font-bold leading-normal tracking-widest uppercase">
+                                        Permanent Campus ID</h4>
+                                    <p
+                                        class="text-slate-500 dark:text-slate-400 text-[10px] font-medium uppercase tracking-[0.15em]">
+                                        Static Verification Code</p>
+                                </div>
+                                <div
+                                    class="bg-white p-5 rounded-2xl shadow-sm border-2 border-slate-900 dark:border-white">
+                                    <div id="id-qr-container" class="size-60 flex items-center justify-center bg-white">
+                                        <!-- Dynamic QR centered here -->
+                                    </div>
+                                </div>
+                                <div
+                                    class="mt-6 flex items-center gap-2 px-4 py-1.5 bg-slate-200/50 dark:bg-slate-700/50 rounded-full">
+                                    <span
+                                        class="material-symbols-outlined text-sm text-slate-600 dark:text-slate-300">verified</span>
+                                    <p
+                                        class="text-slate-600 dark:text-slate-300 text-xs font-bold tracking-wide uppercase">
+                                        Identity Verified</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div
+                        class="p-4 bg-white/50 dark:bg-slate-800/30 rounded-xl border border-slate-200 dark:border-slate-700 mb-4">
+                        <div class="flex items-start gap-3">
+                            <span class="material-symbols-outlined text-slate-400 dark:text-slate-500">info</span>
+                            <p class="text-slate-600 dark:text-slate-400 text-sm leading-relaxed">
+                                This is your permanent campus access code. Present this static ID to security personnel
+                                or scan at automated gates for campus entry and exit.
+                            </p>
+                        </div>
+                    </div>
+                </main>
+            </div>
+        </div><!-- /id-card -->
+
+
+        <!-- ─────────────── SCREEN: CAMPUS ACCESS HISTORY ─────────────── -->
+        <div id="screen-history" class="screen hidden-right bg-background-light dark:bg-background-dark">
+            <div
+                class="flex flex-col max-w-md mx-auto min-h-screen bg-white dark:bg-background-dark shadow-xl relative app-screen-body">
+                <header
+                    class="sticky top-0 z-20 bg-white/80 dark:bg-background-dark/80 backdrop-blur-md px-4 pt-10 pb-4">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="w-10 cursor-pointer" onclick="navTo('dashboard')">
+                            <span class="material-symbols-outlined text-gray-500">arrow_back_ios</span>
+                        </div>
+                        <h1 class="text-lg font-bold tracking-tight">Access History</h1>
+                        <div class="w-10 flex justify-end">
+                            <span class="material-symbols-outlined text-primary">calendar_today</span>
+                        </div>
+                    </div>
+                    <div class="flex bg-gray-100 dark:bg-gray-800 p-1 rounded-lg">
+                        <button id="hist-tab-today" onclick="setHistoryPeriod('today')"
+                            class="flex-1 py-2 text-sm font-semibold rounded-md bg-white dark:bg-gray-700 shadow-sm text-primary">Today</button>
+                        <button id="hist-tab-week" onclick="setHistoryPeriod('week')"
+                            class="flex-1 py-2 text-sm font-semibold rounded-md text-gray-500 dark:text-gray-400">This
+                            Week</button>
+                        <button id="hist-tab-month" onclick="setHistoryPeriod('month')"
+                            class="flex-1 py-2 text-sm font-semibold rounded-md text-gray-500 dark:text-gray-400">This
+                            Month</button>
+                    </div>
+                </header>
+                <main class="flex-1 overflow-y-auto bg-gray-50 dark:bg-slate-900/50">
+                    <div id="history-list" class="min-w-full">
+                        <div class="flex flex-col items-center justify-center py-16 gap-3 text-gray-400">
+                            <span class="material-symbols-outlined text-4xl animate-spin">sync</span>
+                            <p class="text-sm font-medium">Checking records...</p>
+                        </div>
+                    </div>
+                </main>
+            </div>
+        </div><!-- /history -->
+
+
+        <!-- ─────────────── SCREEN: PROFILE & BACKUP ACCESS ─────────────── -->
+        <div id="screen-profile" class="screen hidden-right bg-background-light dark:bg-background-dark">
+            <div
+                class="flex flex-col max-w-md mx-auto min-h-screen bg-background-light dark:bg-background-dark app-screen-body">
+                <header
+                    class="sticky top-0 z-10 flex items-center bg-background-light dark:bg-background-dark p-4 pb-2 justify-between">
+                    <div class="text-[#100d1b] dark:text-white flex size-12 shrink-0 items-center justify-start cursor-pointer"
+                        onclick="navTo('dashboard')">
+                        <span class="material-symbols-outlined">arrow_back_ios</span>
+                    </div>
+                    <h2
+                        class="text-[#100d1b] dark:text-white text-lg font-bold leading-tight tracking-[-0.015em] flex-1 text-center pr-12">
+                        Profile &amp; Backup Access</h2>
+                </header>
+                <main class="flex-1 overflow-y-auto pb-8">
+                    <div class="flex p-4 @container">
+                        <div
+                            class="flex w-full flex-col gap-4 items-center bg-white dark:bg-background-dark/50 rounded-xl p-6 shadow-sm border border-gray-100 dark:border-gray-800">
+                            <div class="flex gap-4 flex-col items-center">
+                                <div id="profile-avatar"
+                                    class="bg-center bg-no-repeat aspect-square bg-cover rounded-full min-h-32 w-32 border-4 border-primary/10 shadow-lg"
+                                    style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuD8yXeKAGvkkQyNwy19DpUh_INeQaRjEz0YvyWMDndNlc9wkcnWVTJO9lqGWNXZhoLhg1Kq2NTyje6px9J98GzKawwWdg7MpOp0nutZob1tSAh0xknEbGpCTm7RAbZ-bF11ASSpDotUxGLaqNKXa7CIfm6iN5xW2BjhMqwA1PpoZIJuSzbyo44zu12J6qsVpCk_u-oPtwuTEZNH0s2Hd1SoppDeoeDkVI_yXvqnoZY1KkSnghxh2bRj4t81dxecRTxUYpNiFJbW-qw");'>
+                                </div>
+                                <div class="flex flex-col items-center justify-center">
+                                    <p id="profile-name"
+                                        class="text-[#100d1b] dark:text-white text-[22px] font-bold leading-tight tracking-[-0.015em] text-center">
+                                        —</p>
+                                    <p id="profile-faculty"
+                                        class="text-[#594c9a] dark:text-primary text-base font-medium leading-normal text-center">
+                                        —</p>
+                                    <p id="profile-student-id"
+                                        class="text-gray-500 text-sm font-normal leading-normal text-center mt-1">ID: —
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="space-y-1 px-4 mt-4">
+                        <div onclick="navTo('settings')"
+                            class="flex items-center gap-4 bg-white dark:bg-background-dark/50 px-4 min-h-16 rounded-lg justify-between border border-gray-100 dark:border-gray-800 cursor-pointer hover:bg-gray-50 transition-all">
+                            <div class="flex items-center gap-4">
+                                <div
+                                    class="text-primary flex items-center justify-center rounded-lg bg-primary/10 shrink-0 size-10">
+                                    <span class="material-symbols-outlined">settings</span>
+                                </div>
+                                <p class="text-[#100d1b] dark:text-white text-base font-medium leading-normal flex-1">
+                                    Account Settings</p>
+                            </div>
+                            <div class="shrink-0 text-gray-400">
+                                <span class="material-symbols-outlined">chevron_right</span>
+                            </div>
+                        </div>
+                        <div id="profile-logout-btn"
+                            class="flex items-center gap-4 bg-white dark:bg-background-dark/50 px-4 min-h-16 rounded-lg justify-between border border-gray-100 dark:border-gray-800 cursor-pointer hover:bg-red-50 transition-all">
+                            <div class="flex items-center gap-4">
+                                <div
+                                    class="text-red-500 flex items-center justify-center rounded-lg bg-red-50 shrink-0 size-10">
+                                    <span class="material-symbols-outlined">logout</span>
+                                </div>
+                                <p class="text-[#100d1b] dark:text-white text-base font-medium leading-normal flex-1">
+                                    Logout</p>
+                            </div>
+                            <div class="shrink-0 text-gray-400">
+                                <span class="material-symbols-outlined">chevron_right</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mt-8 px-4">
+                        <div class="flex items-center justify-between px-1 mb-3">
+                            <h2
+                                class="text-[#100d1b] dark:text-white text-[20px] font-bold leading-tight tracking-[-0.015em]">
+                                Backup QR</h2>
+                            <div
+                                class="flex items-center gap-1.5 bg-green-100 dark:bg-green-900/30 px-3 py-1 rounded-full border border-green-200 dark:border-green-800">
+                                <div class="size-2 rounded-full bg-green-500"></div>
+                                <span
+                                    class="text-green-700 dark:text-green-400 text-xs font-bold uppercase tracking-wider">QR
+                                    Active</span>
+                            </div>
+                        </div>
+                        <div
+                            class="bg-white dark:bg-background-dark/50 p-8 rounded-xl border-2 border-dashed border-gray-200 dark:border-gray-700 flex flex-col items-center">
+                            <div class="bg-white p-4 rounded-lg shadow-sm border border-gray-100 mb-6">
+                                <div class="w-48 h-48 bg-center bg-no-repeat bg-contain"
+                                    style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuAJLPsPAH0P7fiabSaNwCUqhjIIQ5PlV4Rg4kMKaC4eGEGra0lpZ9xQnp9vpxRIu8E3eMu-SF0I3MlTwpCxtaPZQ7vhZ0TNqwtSlPjQHeukJg6zTTdRJhz0yC0UwPVMYz7LkV48VcKJxNDrNHeqVIIEieaJR8vssIrpP61wH4fd3bf-LlxStgpI8fNFP0cBB5ARMwCuM3G5RFdSQCZf6QuBGSsKkVkz9ckgVC9xqr7TP_17aA5Ivlf6L9gjy8TIAd3aknKQa_yArKo");'>
+                                </div>
+                            </div>
+                            <div class="text-center max-w-[280px]">
+                                <p class="text-[#100d1b] dark:text-white text-sm font-semibold mb-2">Offline Entry
+                                    Credential</p>
+                                <p class="text-gray-500 dark:text-gray-400 text-xs leading-relaxed">
+                                    Use only if primary QR is unavailable. This code works without an internet
+                                    connection for emergency campus access.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </main>
+            </div>
+        </div><!-- /profile -->
+        
+        <!-- ─────────────── SCREEN: ACCOUNT SETTINGS ─────────────── -->
+        <div id="screen-settings" class="screen hidden-right bg-background-light dark:bg-background-dark">
+            <div class="flex flex-col max-w-md mx-auto min-h-screen bg-background-light dark:bg-background-dark app-screen-body">
+                <header class="sticky top-0 z-10 flex items-center bg-background-light dark:bg-background-dark p-4 pb-2 justify-between">
+                    <div class="text-[#100d1b] dark:text-white flex size-12 shrink-0 items-center justify-start cursor-pointer" onclick="navTo('profile')">
+                        <span class="material-symbols-outlined">arrow_back_ios</span>
+                    </div>
+                    <h2 class="text-[#100d1b] dark:text-white text-lg font-bold leading-tight tracking-[-0.015em] flex-1 text-center pr-12">Account Settings</h2>
+                </header>
+                <main class="flex-1 overflow-y-auto px-4 pb-8">
+                    <div class="mt-4 space-y-6">
+                        <!-- Personal Info -->
+                        <section>
+                            <h3 class="text-xs font-bold text-gray-400 uppercase tracking-widest px-1 mb-3">Personal Information</h3>
+                            <div class="bg-white dark:bg-background-dark/50 rounded-2xl border border-gray-100 dark:border-gray-800 divide-y divide-gray-100 dark:divide-gray-800 overflow-hidden shadow-sm">
+                                <div class="p-4 flex flex-col gap-1">
+                                    <label class="text-[10px] font-bold text-primary uppercase">Full Name</label>
+                                    <input type="text" id="settings-name" class="bg-transparent border-none p-0 text-base font-medium focus:ring-0 text-[#100d1b] dark:text-white" value="Student" readonly>
+                                </div>
+                                <div class="p-4 flex flex-col gap-1">
+                                    <label class="text-[10px] font-bold text-primary uppercase">Email Address</label>
+                                    <input type="email" id="settings-email" class="bg-transparent border-none p-0 text-base font-medium focus:ring-0 text-[#100d1b] dark:text-white" value="student@university.edu">
+                                </div>
+                                <div class="p-4 flex flex-col gap-1">
+                                    <label class="text-[10px] font-bold text-primary uppercase">Phone Number</label>
+                                    <input type="tel" id="settings-phone" class="bg-transparent border-none p-0 text-base font-medium focus:ring-0 text-[#100d1b] dark:text-white" value="+94 71 234 5678">
+                                </div>
+                            </div>
+                        </section>
+
+                        <!-- Security -->
+                        <section>
+                            <h3 class="text-xs font-bold text-gray-400 uppercase tracking-widest px-1 mb-3">Security</h3>
+                            <div class="bg-white dark:bg-background-dark/50 rounded-2xl border border-gray-100 dark:border-gray-800 divide-y divide-gray-100 dark:divide-gray-800 overflow-hidden shadow-sm">
+                                <button class="w-full p-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
+                                    <span class="text-base font-medium text-[#100d1b] dark:text-white">Update Password</span>
+                                    <span class="material-symbols-outlined text-gray-400">chevron_right</span>
+                                </button>
+                                <button class="w-full p-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
+                                    <span class="text-base font-medium text-[#100d1b] dark:text-white">MFA Settings</span>
+                                    <span class="material-symbols-outlined text-gray-400">chevron_right</span>
+                                </button>
+                            </div>
+                        </section>
+
+                        <!-- Preferences -->
+                        <section>
+                            <h3 class="text-xs font-bold text-gray-400 uppercase tracking-widest px-1 mb-3">Preferences</h3>
+                            <div class="bg-white dark:bg-background-dark/50 rounded-2xl border border-gray-100 dark:border-gray-800 divide-y divide-gray-100 dark:divide-gray-800 overflow-hidden shadow-sm">
+                                <div class="p-4 flex items-center justify-between">
+                                    <span class="text-base font-medium text-[#100d1b] dark:text-white">Push Notifications</span>
+                                    <label class="relative inline-flex items-center cursor-pointer">
+                                        <input type="checkbox" checked class="sr-only peer">
+                                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-primary"></div>
+                                    </label>
+                                </div>
+                                <div class="p-4 flex items-center justify-between">
+                                    <span class="text-base font-medium text-[#100d1b] dark:text-white">Dark Mode</span>
+                                    <label class="relative inline-flex items-center cursor-pointer">
+                                        <input type="checkbox" id="settings-dark-mode" class="sr-only peer">
+                                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-primary"></div>
+                                    </label>
+                                </div>
+                            </div>
+                        </section>
+                    </div>
+                    
+                    <div class="mt-8">
+                        <button class="w-full bg-primary text-white h-14 rounded-xl font-bold text-lg shadow-lg shadow-primary/20 active:scale-[0.98] transition-all">Save Changes</button>
+                    </div>
+                </main>
+            </div>
+        </div><!-- /settings -->
+
+        <!-- ─────────────── SCREEN: MFA SETTINGS ─────────────── -->
+        <div id="screen-mfa" class="screen hidden-right bg-background-light dark:bg-background-dark">
+            <div class="flex flex-col max-w-md mx-auto min-h-screen bg-background-light dark:bg-background-dark app-screen-body">
+                <header class="sticky top-0 z-10 flex items-center bg-background-light dark:bg-background-dark p-4 pb-2 justify-between">
+                    <div class="text-[#100d1b] dark:text-white flex size-12 shrink-0 items-center justify-start cursor-pointer" onclick="navTo('settings')">
+                        <span class="material-symbols-outlined">arrow_back_ios</span>
+                    </div>
+                    <h2 class="text-[#100d1b] dark:text-white text-lg font-bold leading-tight tracking-[-0.015em] flex-1 text-center pr-12">MFA Settings</h2>
+                </header>
+                <main class="flex-1 overflow-y-auto px-4 pb-8">
+                    <div class="mt-4 space-y-6">
+                        <div class="bg-primary/5 dark:bg-primary/10 p-6 rounded-2xl border border-primary/10 flex flex-col items-center text-center">
+                            <div class="size-16 rounded-full bg-primary/10 flex items-center justify-center text-primary mb-4">
+                                <span class="material-symbols-outlined text-4xl">verified_user</span>
+                            </div>
+                            <h3 class="text-lg font-bold text-[#100d1b] dark:text-white">Multi-Factor Authentication</h3>
+                            <p class="text-sm text-gray-500 dark:text-gray-400 mt-2">Protect your campus access with an extra layer of security.</p>
+                        </div>
+
+                        <section>
+                            <h3 class="text-xs font-bold text-gray-400 uppercase tracking-widest px-1 mb-3">Methods</h3>
+                            <div class="bg-white dark:bg-background-dark/50 rounded-2xl border border-gray-100 dark:border-gray-800 divide-y divide-gray-100 dark:divide-gray-800 overflow-hidden shadow-sm">
+                                <div class="p-4 flex items-center justify-between">
+                                    <div class="flex items-center gap-3">
+                                        <div class="size-10 rounded-lg bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 flex items-center justify-center">
+                                            <span class="material-symbols-outlined">mail</span>
+                                        </div>
+                                        <div>
+                                            <p class="text-base font-semibold text-[#100d1b] dark:text-white">Email Verification</p>
+                                            <p class="text-[10px] text-green-600 font-bold uppercase">Active</p>
+                                        </div>
+                                    </div>
+                                    <span class="material-symbols-outlined text-green-500">check_circle</span>
+                                </div>
+                                <div class="p-4 flex items-center justify-between opacity-50">
+                                    <div class="flex items-center gap-3">
+                                        <div class="size-10 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-400 flex items-center justify-center">
+                                            <span class="material-symbols-outlined">key</span>
+                                        </div>
+                                        <div>
+                                            <p class="text-base font-semibold text-[#100d1b] dark:text-white">Hardware Security Key</p>
+                                            <p class="text-[10px] text-gray-400 font-bold uppercase italic">Coming Soon</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </section>
+                    </div>
+                </main>
+            </div>
+        </div><!-- /mfa -->
+
+        <!-- ─────────────── CUSTOM MODAL ─────────────── -->
+        <div id="custom-modal-overlay">
+            <div id="custom-modal">
+                <div id="modal-icon" class="size-16 rounded-full bg-primary/10 flex items-center justify-center text-primary mx-auto mb-4">
+                    <span class="material-symbols-outlined text-4xl">info</span>
+                </div>
+                <h3 id="modal-title" class="text-xl font-bold text-[#100d1b] dark:text-white mb-2">Notice</h3>
+                <p id="modal-message" class="text-gray-500 dark:text-gray-400 text-sm leading-relaxed mb-8 px-2">Message goes here.</p>
+                <div id="modal-actions" class="flex flex-col gap-2">
+                    <button id="modal-confirm" class="w-full bg-primary text-white h-12 rounded-xl font-bold transition-all active:scale-[0.98]">Confirm</button>
+                    <button id="modal-cancel" class="w-full text-gray-500 font-bold h-12 rounded-xl hover:bg-gray-50 dark:hover:bg-white/5 transition-all">Cancel</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ─────────────── QR MODAL ─────────────── -->
+        <div id="qr-modal-overlay">
+            <div id="qr-modal">
+                <div class="mb-6 flex flex-col items-center gap-1">
+                    <h3 class="text-slate-900 dark:text-white text-lg font-bold leading-tight tracking-tight uppercase">
+                        Campus Access QR</h3>
+                    <p class="text-primary dark:text-primary/70 text-[10px] font-bold uppercase tracking-[0.15em]">
+                        Dynamic Verification Code</p>
+                </div>
+                <div class="bg-white p-4 rounded-2xl shadow-inner border border-slate-100 mx-auto inline-block">
+                    <div id="dashboard-qr-container" class="size-60 flex items-center justify-center bg-white">
+                        <!-- Dynamic QR centered here -->
+                    </div>
+                </div>
+                <div class="mt-8 flex flex-col gap-4">
+                    <div class="flex items-center justify-center gap-2 text-slate-500 dark:text-slate-400">
+                        <span class="material-symbols-outlined text-sm animate-pulse">sensors</span>
+                        <p class="text-xs font-semibold uppercase tracking-wider">Ready to Scan</p>
+                    </div>
+                    <button id="qr-modal-close" class="w-full bg-slate-100 dark:bg-white/5 text-slate-900 dark:text-white h-14 rounded-2xl font-bold transition-all active:scale-[0.98]">Dismiss</button>
+                </div>
+            </div>
+        </div>
+
+    </div><!-- /app -->
+
+    </div><!-- /app -->
+
+
+    <!-- ══════════ SCRIPTS ══════════ -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
+        import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged }
+            from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
+        import {
+            getFirestore, doc, collection, query, where, orderBy, limit,
+            onSnapshot, setDoc, getDocs, deleteDoc, serverTimestamp, Timestamp, enableIndexedDbPersistence
+        }
+            from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
+
+        /* ── Firebase init ── */
+        const firebaseConfig = {
+            apiKey: "AIzaSyBiNC6RwXqTachVrdOtxInzme10Pk281DU",
+            authDomain: "student-login-data-base.firebaseapp.com",
+            projectId: "student-login-data-base",
+            storageBucket: "student-login-data-base.firebasestorage.app",
+            messagingSenderId: "480696491383",
+            appId: "1:480696491383:web:8158fedf914d35d8f3d572",
+            measurementId: "G-P052S3CSVT"
+        };
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        // Enable persistence
+        enableIndexedDbPersistence(db).catch((err) => {
+            if (err.code == 'failed-precondition') {
+                console.warn("Persistence failed: Multiple tabs open");
+            } else if (err.code == 'unimplemented') {
+                console.warn("Persistence is not available in this browser");
+            }
+        });
+
+        const $ = id => document.getElementById(id);
+
+        /* ── Firestore listener handles ── */
+        let unsubStudent = null;
+        let unsubLogs = null;
+        let lastStudentData = null;
+        let lastLogsJson = null;
+
+        /* ── NAV ── */
+        const APP_TABS = ["dashboard", "id-card", "history", "profile"];
+        const NAV_MAP = { "dashboard": "nav-home", "id-card": "nav-id", "history": "nav-history", "profile": "nav-profile" };
+        const AUTH_SCREENS = ["welcome", "login"];
+        const SUB_SCREENS = ["settings", "mfa"];
+
+        function navTo(target) {
+            const allIds = [...AUTH_SCREENS, ...APP_TABS, ...SUB_SCREENS];
+            const tIdx = allIds.indexOf(target);
+            allIds.forEach((id, idx) => {
+                const el = $(`screen-${id}`);
+                if (!el) return;
+                el.classList.remove("active", "hidden-left", "hidden-right");
+                if (idx < tIdx) el.classList.add("hidden-left");
+                else if (idx > tIdx) el.classList.add("hidden-right");
+                else el.classList.add("active");
+            });
+
+            // Trigger QR generation for ID Card
+            if (target === "id-card") {
+                const user = auth.currentUser;
+                if (user) renderQR("id-qr-container", user.email || user.uid);
+            }
+
+            const nav = $("bottom-nav");
+            if (AUTH_SCREENS.includes(target)) {
+                nav.classList.add("hidden-nav");
+            } else {
+                nav.classList.remove("hidden-nav");
+                APP_TABS.forEach(tab => {
+                    const btn = $(NAV_MAP[tab]);
+                    if (!btn) return;
+                    const icon = btn.querySelector(".nav-icon");
+                    if (tab === target) {
+                        btn.classList.add("active-tab");
+                        if (icon) icon.style.fontVariationSettings = "'FILL' 1,'wght' 600,'GRAD' 0,'opsz' 24";
+                    } else {
+                        btn.classList.remove("active-tab");
+                        if (icon) icon.style.fontVariationSettings = "'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 24";
+                    }
+                });
+            }
+        }
+        window.navTo = navTo;
+
+        /* ── Helpers ── */
+        function getGreeting() {
+            const h = new Date().getHours();
+            if (h < 12) return "Good Morning";
+            if (h < 18) return "Good Afternoon";
+            return "Good Evening";
+        }
+
+        function fmtTime(ts) {
+            if (!ts) return "—";
+            const d = ts.toDate ? ts.toDate() : new Date(ts);
+            return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+        }
+
+        function fmtDateLabel(ts) {
+            if (!ts) return "";
+            const d = ts.toDate ? ts.toDate() : new Date(ts);
+            const today = new Date(); today.setHours(0, 0, 0, 0);
+            const yesterday = new Date(today); yesterday.setDate(today.getDate() - 1);
+            const day = new Date(d); day.setHours(0, 0, 0, 0);
+            if (day.getTime() === today.getTime()) return "Today";
+            if (day.getTime() === yesterday.getTime()) return "Yesterday";
+            return d.toLocaleDateString([], { weekday: "short", month: "short", day: "numeric" });
+        }
+
+        /* ── Update dashboard campus status card ── */
+        function updateStatusCard(data) {
+            // Quick reference check to skip redundant DOM updates
+            const currentDataJson = JSON.stringify({ 
+                status: data.campusStatus, 
+                gate: data.lastGate, 
+                entry: data.lastEntryTime, 
+                exit: data.lastExitTime 
+            });
+            if (window._lastStatusJson === currentDataJson) return;
+            window._lastStatusJson = currentDataJson;
+
+            const inside = data.campusStatus === "inside";
+            // dot + label on image (Always show 'Online' while user is logged in)
+            const dot = $("dash-status-dot");
+            const label = $("dash-status-label");
+            if (dot) { dot.className = "flex h-3 w-3 rounded-full bg-green-500 animate-pulse"; }
+            if (label) { label.textContent = "Online • Active Session"; }
+            // text status
+            const cs = $("dash-campus-status");
+            if (cs) cs.textContent = inside ? "Campus Status: Inside Campus" : "Campus Status: Outside Campus";
+            // gate text
+            const gl = $("dash-last-gate");
+            if (gl) gl.textContent = data.lastGate
+                ? (inside ? `Checked in at ${data.lastGate}` : `Last seen at ${data.lastGate}`)
+                : "No gate data yet";
+            // activity log cards
+            const entryEl = $("dash-entry-time");
+            const exitEl = $("dash-exit-time");
+            const exitLbl = $("dash-exit-label");
+            if (entryEl) entryEl.textContent = data.lastEntryTime ? fmtTime(data.lastEntryTime) : "—";
+            if (exitEl) exitEl.textContent = data.lastExitTime ? fmtTime(data.lastExitTime) : "—";
+            // label: show day context for exit
+            if (exitLbl && data.lastExitTime) {
+                const exitDay = fmtDateLabel(data.lastExitTime);
+                exitLbl.textContent = exitDay === "Today" ? "Last Exit" : `Last Exit (${exitDay})`;
+            }
+            // Digital ID location badge
+            const locText = $("id-location-text");
+            if (locText) locText.textContent = inside ? "Inside Campus" : "Outside Campus";
+        }
+
+        /* ── Dynamic QR Generation ── */
+        function renderQR(containerId, text) {
+            const container = $(containerId);
+            if (!container) return;
+            container.innerHTML = ""; // Clear existing
+            new QRCode(container, {
+                text: text,
+                width: 240,
+                height: 240,
+                colorDark: "#100d1b",
+                colorLight: "#ffffff",
+                correctLevel: QRCode.CorrectLevel.H
+            });
+        }
+
+        /* ── Update all name/profile fields ── */
+        function updateProfileFields(data, user) {
+            const name = data.displayName || user.email.split("@")[0];
+            const capName = name.charAt(0).toUpperCase() + name.slice(1);
+            const faculty = data.faculty || "";
+            const regNo = data.regNumber || "";
+            const studId = data.studentId || "";
+
+            // Dashboard
+            const dn = $("dashboard-name");
+            const dg = $("dashboard-greeting");
+            const da = $("dashboard-avatar");
+            if (dn) dn.textContent = capName;
+            if (dg) dg.textContent = getGreeting();
+            if (da && data.photoURL) da.style.backgroundImage = `url("${data.photoURL}")`;
+
+            // Update avatars across other screens
+            [$("id-avatar"), $("profile-avatar")].forEach(el => {
+                if (el && data.photoURL) el.style.backgroundImage = `url("${data.photoURL}")`;
+            });
+
+            // Digital ID
+            if ($("id-name")) $("id-name").textContent = capName;
+            if ($("id-faculty")) $("id-faculty").textContent = faculty.toUpperCase();
+            if ($("id-reg")) $("id-reg").textContent = regNo;
+
+            // Profile
+            if ($("profile-name")) $("profile-name").textContent = capName;
+            if ($("profile-faculty")) $("profile-faculty").textContent = faculty ? `Student – ${faculty}` : "Student";
+            if ($("profile-student-id")) $("profile-student-id").textContent = studId ? `ID: ${studId}` : `Email: ${user.email}`;
+
+            // Account Settings Fields
+            if ($("settings-name")) $("settings-name").value = capName;
+            if ($("settings-email")) $("settings-email").value = user.email;
+            if ($("settings-phone")) $("settings-phone").value = data.phone || "+94 —";
+            
+            // Sync Dark Mode Toggle
+            const dmToggle = $("settings-dark-mode");
+            if (dmToggle) {
+                dmToggle.checked = document.documentElement.classList.contains('dark');
+            }
+        }
+
+        /* ── Render history list (Regular Table Style) ── */
+        function renderHistory(logs) {
+            const container = $("history-list");
+            if (!container) return;
+
+            if (!logs || logs.length === 0) {
+                container.innerHTML = `
+                <div class="flex flex-col items-center justify-center py-20 gap-3 text-gray-400 bg-white dark:bg-background-dark h-full">
+                  <span class="material-symbols-outlined text-5xl">history</span>
+                  <p class="text-sm font-semibold">No history found for this period.</p>
+                </div>`;
+                return;
+            }
+
+            let html = `
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse bg-white dark:bg-background-dark">
+                    <thead class="bg-gray-100 dark:bg-gray-800/50 sticky top-0 z-20">
+                        <tr>
+                            <th class="px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-gray-500">Event</th>
+                            <th class="px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-gray-500">Gate / Location</th>
+                            <th class="px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-gray-500">Date & Time</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-100 dark:divide-gray-800">`;
+
+            logs.forEach(log => {
+                const isEntry = log.type === "entry";
+                const colorClass = isEntry ? "text-emerald-600 dark:text-emerald-400" : "text-amber-600 dark:text-amber-400";
+                const bgClass = isEntry ? "bg-emerald-50 dark:bg-emerald-500/10" : "bg-amber-50 dark:bg-amber-500/10";
+                
+                html += `
+                <tr class="hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
+                    <td class="px-4 py-4">
+                        <div class="flex items-center gap-2">
+                            <div class="size-8 rounded-lg ${bgClass} flex items-center justify-center ${colorClass}">
+                                <span class="material-symbols-outlined text-sm font-bold">${isEntry ? 'login' : 'logout'}</span>
+                            </div>
+                            <span class="text-xs font-bold ${colorClass}">${isEntry ? 'ENTRY' : 'EXIT'}</span>
+                        </div>
+                    </td>
+                    <td class="px-4 py-4">
+                        <p class="text-sm font-bold text-gray-900 dark:text-white leading-none">${log.gate || "Main Gate"}</p>
+                        <p class="text-[10px] text-gray-400 mt-1 uppercase tracking-tighter">Campus Perimeter</p>
+                    </td>
+                    <td class="px-4 py-4">
+                        <p class="text-sm font-medium text-gray-700 dark:text-gray-300">${fmtDateLabel(log.timestamp)}</p>
+                        <p class="text-[10px] text-gray-400 mt-1">${fmtTime(log.timestamp)}</p>
+                    </td>
+                </tr>`;
+            });
+
+            html += `</tbody></table></div>`;
+            container.innerHTML = html;
+        }
+
+        /* ── Start Firestore listeners for a logged-in user ── */
+        let currentPeriod = "today";
+        function startListeners(user) {
+            // Clean up any previous listeners
+            if (unsubStudent) { unsubStudent(); unsubStudent = null; }
+            if (unsubLogs) { unsubLogs(); unsubLogs = null; }
+
+            const studentRef = doc(db, "students", user.uid);
+
+            // ── Student profile + status (real-time) ──
+            unsubStudent = onSnapshot(studentRef, async snap => {
+                if (snap.exists()) {
+                    const data = snap.data();
+                    updateProfileFields(data, user);
+                    updateStatusCard(data);
+                } else {
+                    // Try to link with existing seed data document by email
+                    try {
+                        const emailQuery = query(collection(db, "students"), where("email", "==", user.email), limit(1));
+                        const emailSnap = await getDocs(emailQuery);
+                        
+                        let seedData = {};
+                        if (!emailSnap.empty && emailSnap.docs[0].id !== user.uid) {
+                            seedData = emailSnap.docs[0].data();
+                            console.log("Linking authenticated account with seed profile:", emailSnap.docs[0].id);
+                        }
+
+                        const name = user.displayName || seedData.displayName || user.email.split("@")[0];
+                        await setDoc(studentRef, {
+                            displayName: name,
+                            email: user.email,
+                            faculty: seedData.faculty || "Faculty of Engineering",
+                            year: seedData.year || "1",
+                            regNumber: seedData.regNumber || "",
+                            studentId: seedData.studentId || seedData.id || "",
+                            campusStatus: seedData.campusStatus || "outside",
+                            lastGate: seedData.lastGate || "",
+                            lastEntryTime: seedData.lastEntryTime || null,
+                            lastExitTime: seedData.lastExitTime || null,
+                            uid: user.uid, // Explicitly store the UID as a field for Admin lookup
+                            linkedFrom: emailSnap.empty ? null : emailSnap.docs[0].id,
+                            createdAt: serverTimestamp()
+                        }, { merge: true });
+
+                        // CRITICAL: Clean up legacy duplicate if it exists and is different from the new ID
+                        if (!emailSnap.empty && emailSnap.docs[0].id !== user.uid) {
+                            const legacyDocId = emailSnap.docs[0].id;
+                            console.warn("[Migration] Deleting legacy profile document:", legacyDocId);
+                            await deleteDoc(doc(db, "students", legacyDocId));
+                        }
+                    } catch (e) {
+                         console.error("Link/Create error:", e);
+                    }
+                }
+            }, err => console.error("Student listener error:", err));
+
+            // Initial logs fetch
+            const ids = [user.uid, user.email];
+            refreshHistoryListener(ids);
+        }
+
+        function setHistoryPeriod(p) {
+            if (currentPeriod === p) return;
+            currentPeriod = p;
+            
+            // Update UI tabs
+            ["today", "week", "month"].forEach(id => {
+                const btn = $(`hist-tab-${id}`);
+                if (!btn) return;
+                if (id === p) {
+                    btn.className = "flex-1 py-2 text-sm font-semibold rounded-md bg-white dark:bg-gray-700 shadow-sm text-primary";
+                } else {
+                    btn.className = "flex-1 py-2 text-sm font-semibold rounded-md text-gray-500 dark:text-gray-400";
+                }
+            });
+
+            const ids = [auth.currentUser?.uid, auth.currentUser?.email].filter(Boolean);
+            refreshHistoryListener(ids);
+        }
+
+
+        function refreshHistoryListener(idList = []) {
+            const user = auth.currentUser;
+            if (!user) return;
+            if (unsubLogs) { unsubLogs(); unsubLogs = null; }
+
+            // Ensure we at least have current user details
+            const searchIds = [...new Set([...idList, user.uid, user.email])].filter(Boolean);
+
+            // Loading state
+            const container = $("history-list");
+            if (container) {
+                container.innerHTML = `<div class="flex flex-col items-center justify-center py-20 gap-3 text-gray-400 bg-white dark:bg-background-dark h-full">
+                    <span class="material-symbols-outlined text-4xl animate-spin">sync</span>
+                    <p class="text-sm font-medium">Retrieving database records...</p>
+                </div>`;
+            }
+
+            let minDate = new Date();
+            minDate.setHours(0,0,0,0);
+            if (currentPeriod === "week") minDate.setDate(minDate.getDate() - 7);
+            if (currentPeriod === "month") minDate.setMonth(minDate.getMonth() - 1);
+
+            // Fetch logs for all known identifiers (Email, UID, Seed ID)
+            const logsQuery = query(
+                collection(db, "accessLogs"),
+                where("uid", "in", searchIds)
+            );
+
+            unsubLogs = onSnapshot(logsQuery, snap => {
+                let logs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+                
+                // Perform filtering and sorting (Mimics how the Admin table works automatically)
+                logs = logs.filter(log => {
+                    const ts = log.timestamp;
+                    const date = (ts && ts.toDate) ? ts.toDate() : (ts ? new Date(ts) : null);
+                    return date && date >= minDate;
+                });
+
+                logs.sort((a, b) => {
+                    const tA = (a.timestamp?.seconds || 0);
+                    const tB = (b.timestamp?.seconds || 0);
+                    return tB - tA;
+                });
+
+                renderHistory(logs.slice(0, 50));
+            }, err => {
+                console.error("Logs error:", err);
+                if (container) {
+                    container.innerHTML = `<div class="p-6 text-center text-gray-400 bg-white h-full"><p class="text-xs">Database connection issue: ${err.message}</p></div>`;
+                }
+            });
+        }
+
+        /* ── Stop all listeners (on sign-out) ── */
+        function stopListeners() {
+            if (unsubStudent) { unsubStudent(); unsubStudent = null; }
+            if (unsubLogs) { unsubLogs(); unsubLogs = null; }
+        }
+
+        /* ── Reset login form ── */
+        function resetLoginForm() {
+            const btn = $("btn-login");
+            if (btn) { btn.textContent = "Login"; btn.disabled = false; }
+            const ei = $("login-email"), pi = $("login-password"), eye = $("eye-icon");
+            if (ei) ei.value = "";
+            if (pi) { pi.value = ""; pi.type = "password"; }
+            if (eye) eye.textContent = "visibility";
+            hideError();
+        }
+
+        /* ── Button wiring ── */
+        if ($("btn-student-login")) {
+            $("btn-student-login").addEventListener("click", () => { resetLoginForm(); navTo("login"); });
+        }
+        $("btn-back-to-welcome").addEventListener("click", () => navTo("welcome"));
+
+        $("toggle-password").addEventListener("click", () => {
+            const inp = $("login-password"), eye = $("eye-icon");
+            if (inp.type === "password") { inp.type = "text"; eye.textContent = "visibility_off"; }
+            else { inp.type = "password"; eye.textContent = "visibility"; }
+        });
+
+        function showError(msg) {
+            const b = $("login-error");
+            $("login-error-text").textContent = msg;
+            b.classList.remove("hidden"); b.classList.add("flex");
+            [$("login-email"), $("login-password")].forEach(el => {
+                el.classList.add("shake");
+                setTimeout(() => el.classList.remove("shake"), 500);
+            });
+        }
+        function hideError() {
+            const b = $("login-error");
+            if (b) { b.classList.add("hidden"); b.classList.remove("flex"); }
+        }
+
+        $("btn-login").addEventListener("click", async () => {
+            hideError();
+            const email = $("login-email").value.trim();
+            const pass = $("login-password").value;
+            if (!email || !pass) { showError("Enter your digital credentials."); return; }
+            const btn = $("btn-login");
+            btn.textContent = "Authenticating…"; btn.disabled = true;
+            try {
+                await signInWithEmailAndPassword(auth, email, pass);
+            } catch (err) {
+                btn.textContent = "Sign In"; btn.disabled = false;
+                const msg = ["auth/invalid-credential", "auth/user-not-found", "auth/wrong-password"].includes(err.code)
+                    ? "Incorrect email or password. Please try again." : err.message;
+                showError(msg);
+            }
+        });
+
+        async function doSignOut() {
+            stopListeners();
+            resetLoginForm();
+            await signOut(auth);
+        }
+        $("btn-logout").addEventListener("click", doSignOut);
+        $("profile-logout-btn").addEventListener("click", doSignOut);
+
+        /* ── Custom Modal Logic ── */
+        function showModal({ title, message, icon = "info", confirmText = "OK", cancelText = null, onConfirm = null }) {
+            const overlay = $("custom-modal-overlay");
+            const modalIcon = $("modal-icon");
+            const modalTitle = $("modal-title");
+            const modalMessage = $("modal-message");
+            const modalConfirm = $("modal-confirm");
+            const modalCancel = $("modal-cancel");
+
+            modalTitle.textContent = title;
+            modalMessage.textContent = message;
+            modalConfirm.textContent = confirmText;
+            modalIcon.querySelector('span').textContent = icon;
+
+            if (cancelText) {
+                modalCancel.textContent = cancelText;
+                modalCancel.classList.remove('hidden');
+            } else {
+                modalCancel.classList.add('hidden');
+            }
+
+            const close = () => {
+                overlay.classList.remove('active');
+                setTimeout(() => {
+                    modalConfirm.onclick = null;
+                    modalCancel.onclick = null;
+                }, 300);
+            };
+
+            modalConfirm.onclick = () => {
+                if (onConfirm) onConfirm();
+                close();
+            };
+            modalCancel.onclick = close;
+
+            overlay.classList.add('active');
+        }
+
+        /* ── Account Settings Logic ── */
+        const btnMfaSettings = document.querySelector("#screen-settings section:nth-of-type(2) button:last-child");
+        if (btnMfaSettings) {
+            btnMfaSettings.addEventListener("click", () => navTo('mfa'));
+        }
+
+        const btnSaveSettings = document.querySelector("#screen-settings button.bg-primary");
+        if (btnSaveSettings) {
+            btnSaveSettings.addEventListener("click", async () => {
+                const user = auth.currentUser;
+                if (!user) return;
+
+                const originalText = btnSaveSettings.textContent;
+                btnSaveSettings.textContent = "Saving Changes…";
+                btnSaveSettings.disabled = true;
+
+                try {
+                    const studentRef = doc(db, "students", user.uid);
+                    await setDoc(studentRef, {
+                        phone: $("settings-phone").value,
+                        // email is handled by Auth, but we can store it in Firestore for display
+                        lastUpdated: serverTimestamp()
+                    }, { merge: true });
+
+                    btnSaveSettings.textContent = "Changes Saved!";
+                    btnSaveSettings.classList.replace("bg-primary", "bg-green-500");
+                    
+                    setTimeout(() => {
+                        btnSaveSettings.textContent = originalText;
+                        btnSaveSettings.classList.replace("bg-green-500", "bg-primary");
+                        btnSaveSettings.disabled = false;
+                    }, 2000);
+                } catch (err) {
+                    console.error("Save error:", err);
+                    btnSaveSettings.textContent = "Error Saving";
+                    btnSaveSettings.classList.replace("bg-primary", "bg-red-500");
+                    setTimeout(() => {
+                        btnSaveSettings.textContent = originalText;
+                        btnSaveSettings.classList.replace("bg-red-500", "bg-primary");
+                        btnSaveSettings.disabled = false;
+                    }, 2000);
+                }
+            });
+        }
+
+        // Dark Mode Toggle Logic
+        const dmToggle = $("settings-dark-mode");
+        if (dmToggle) {
+            dmToggle.addEventListener("change", () => {
+                if (dmToggle.checked) {
+                    document.documentElement.classList.add('dark');
+                    localStorage.setItem('theme', 'dark');
+                } else {
+                    document.documentElement.classList.remove('dark');
+                    localStorage.setItem('theme', 'light');
+                }
+            });
+        }
+
+        // Password Reset logic (simple redirection/trigger)
+        const btnUpdatePassword = document.querySelector("#screen-settings section:nth-of-type(2) button:first-child");
+        if (btnUpdatePassword) {
+            btnUpdatePassword.addEventListener("click", async () => {
+                const user = auth.currentUser;
+                if (!user || !user.email) return;
+                
+                showModal({
+                    title: "Security Update",
+                    message: `Send a password reset link to ${user.email}? This will sign you out of all sessions.`,
+                    icon: "lock_reset",
+                    confirmText: "Send Link",
+                    cancelText: "Wait, cancel",
+                    onConfirm: async () => {
+                        try {
+                            const { getAuth, sendPasswordResetEmail } = await import("https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js");
+                            await sendPasswordResetEmail(auth, user.email);
+                            showModal({
+                                title: "Email Sent!",
+                                message: "Please check your inbox to set a new password.",
+                                icon: "mark_email_read"
+                            });
+                        } catch (err) {
+                            showModal({
+                                title: "Error",
+                                message: err.message,
+                                icon: "error"
+                            });
+                        }
+                    }
+                });
+            });
+        }
+
+        /* ── Splash dismiss ── */
+        let splashDone = false;
+        let authResolved = false;   // set true as soon as onAuthStateChanged fires
+
+        function dismissSplash() {
+            if (splashDone) return; splashDone = true;
+            const o = $("loading-overlay");
+            if (o) { o.classList.add("fade-out"); setTimeout(() => o.remove(), 500); }
+        }
+
+        // Fallback: only navigate to welcome if auth hasn't resolved yet
+        setTimeout(() => {
+            if (!authResolved) {
+                dismissSplash();
+                navTo("welcome");
+            }
+        }, 1500);
+
+        /* ── Auth state ── */
+        onAuthStateChanged(auth, user => {
+            authResolved = true;       // auth responded — cancel the fallback nav
+            dismissSplash();
+            const btn = $("btn-login");
+            if (btn) { btn.textContent = "Sign In"; btn.disabled = false; }
+            if (user) {
+                startListeners(user);   // kick off real-time Firestore listeners
+                navTo("dashboard");
+            } else {
+                stopListeners();
+                navTo("welcome");
+            }
+        });
+
+        /* ── Dashboard QR Modal Logic ── */
+        const qrOverlay = $("qr-modal-overlay");
+        const qrClose = $("qr-modal-close");
+        const qrBtn = $("btn-show-dashboard-qr");
+
+        if (qrBtn) {
+            qrBtn.addEventListener("click", () => {
+                const user = auth.currentUser;
+                // Encode email so admin scanner can reliably resolve the student name
+                if (user) renderQR("dashboard-qr-container", user.email || user.uid);
+                qrOverlay.classList.add("active");
+            });
+        }
+
+        if (qrClose) {
+            qrClose.addEventListener("click", () => {
+                qrOverlay.classList.remove("active");
+            });
+        }
+
+        if (qrOverlay) {
+            qrOverlay.addEventListener("click", (e) => {
+                if (e.target === qrOverlay) {
+                    qrOverlay.classList.remove("active");
+                }
+            });
+        }
+
+
+    </script>
+
+</body>
+
+</html>

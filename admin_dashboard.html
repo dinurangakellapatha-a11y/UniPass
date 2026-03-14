@@ -1,0 +1,2036 @@
+<!DOCTYPE html>
+<html class="light" lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+  <title>Admin Dashboard - Campus Access</title>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&amp;display=swap" rel="stylesheet" />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+    rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://unpkg.com/html5-qrcode"></script>
+
+  <!-- Firebase Compat SDKs (Better for local file execution) -->
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+  <script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "primary": "#6366f1",
+            "primary-dark": "#4f46e5",
+            "background-light": "#f8fafc",
+            "background-dark": "#0B0F19",
+          },
+          fontFamily: { "display": ["Outfit", "sans-serif"] },
+          borderRadius: { "DEFAULT": "0.5rem", "lg": "1rem", "xl": "1.5rem", "full": "9999px" },
+        },
+      },
+    }
+  </script>
+  <style>
+    body {
+      min-height: max(884px, 100dvh);
+      background-image: radial-gradient(circle at 15% 50%, rgba(99, 102, 241, .08), transparent 25%),
+        radial-gradient(circle at 85% 30%, rgba(99, 102, 241, .06), transparent 25%);
+      background-attachment: fixed;
+    }
+
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: rgba(156, 163, 175, .3);
+      border-radius: 4px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(156, 163, 175, .5);
+    }
+
+    .stat-loading {
+      animation: pulse 1.5s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+
+      0%,
+      100% {
+        opacity: 1
+      }
+
+      50% {
+        opacity: .4
+      }
+    }
+
+    /* ── Login Overlay ── */
+    #login-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+      transition: opacity 0.6s ease, visibility 0.6s ease;
+    }
+    #login-overlay.fade-out {
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+    }
+    .login-card {
+      background: rgba(255,255,255,0.07);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid rgba(255,255,255,0.14);
+      border-radius: 1.5rem;
+      padding: 2.75rem 2.5rem;
+      width: 100%;
+      max-width: 420px;
+      box-shadow: 0 30px 80px rgba(0,0,0,0.5);
+      animation: cardIn 0.5s cubic-bezier(0.22,1,0.36,1) both;
+    }
+    @keyframes cardIn {
+      from { opacity:0; transform: translateY(28px) scale(0.97); }
+      to   { opacity:1; transform: translateY(0)   scale(1);    }
+    }
+    .login-card .brand-icon {
+      width: 56px; height: 56px;
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      border-radius: 1rem;
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 1.25rem;
+      box-shadow: 0 8px 24px rgba(99,102,241,0.5);
+    }
+    .login-card h2 {
+      color: #fff;
+      font-size: 1.5rem;
+      font-weight: 800;
+      text-align: center;
+      margin-bottom: 0.25rem;
+    }
+    .login-card .subtitle {
+      color: rgba(255,255,255,0.45);
+      font-size: 0.8rem;
+      font-weight: 500;
+      text-align: center;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 2rem;
+    }
+    .login-field {
+      position: relative;
+      margin-bottom: 1rem;
+    }
+    .login-field .field-icon {
+      position: absolute;
+      left: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: rgba(255,255,255,0.35);
+      font-size: 20px;
+      pointer-events: none;
+    }
+    .login-field input {
+      width: 100%;
+      background: rgba(255,255,255,0.07);
+      border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 0.75rem;
+      padding: 0.85rem 1rem 0.85rem 2.75rem;
+      color: #fff;
+      font-size: 0.9rem;
+      font-family: inherit;
+      outline: none;
+      transition: border-color 0.2s, background 0.2s;
+      box-sizing: border-box;
+    }
+    .login-field input::placeholder { color: rgba(255,255,255,0.3); }
+    .login-field input:focus {
+      border-color: #6366f1;
+      background: rgba(99,102,241,0.1);
+    }
+    #login-error {
+      color: #f87171;
+      font-size: 0.82rem;
+      font-weight: 600;
+      text-align: center;
+      min-height: 1.2rem;
+      margin-bottom: 0.75rem;
+      display: none;
+    }
+    #login-error.visible { display: block; }
+    .login-btn {
+      width: 100%;
+      padding: 0.9rem;
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      color: #fff;
+      font-weight: 800;
+      font-size: 0.95rem;
+      font-family: inherit;
+      border: none;
+      border-radius: 0.75rem;
+      cursor: pointer;
+      box-shadow: 0 4px 20px rgba(99,102,241,0.45);
+      transition: transform 0.15s, box-shadow 0.15s;
+    }
+    .login-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 28px rgba(99,102,241,0.55);
+    }
+    .login-btn:active { transform: translateY(0); }
+    .login-badge {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      margin-top: 1.5rem;
+      color: rgba(255,255,255,0.3);
+      font-size: 0.75rem;
+      font-weight: 500;
+    }
+  </style>
+</head>
+
+<body class="bg-background-light font-display text-slate-900 antialiased">
+
+  <!-- ── Login Overlay ── -->
+  <div id="login-overlay">
+    <div class="login-card">
+      <div class="brand-icon">
+        <span class="material-symbols-outlined" style="color:#fff;font-size:28px">security</span>
+      </div>
+      <h2>Admin Portal</h2>
+      <p class="subtitle">Campus Access Control &bull; Secure Sign-In</p>
+
+      <form id="login-form" onsubmit="handleAdminLogin(event)">
+        <div class="login-field">
+          <span class="material-symbols-outlined field-icon">person</span>
+          <input type="text" id="login-username" placeholder="Username" autocomplete="username" required>
+        </div>
+        <div class="login-field">
+          <span class="material-symbols-outlined field-icon">lock</span>
+          <input type="password" id="login-password" placeholder="Password" autocomplete="current-password" required>
+        </div>
+        <div id="login-error">Invalid username or password.</div>
+        <button type="submit" class="login-btn">Sign In</button>
+      </form>
+
+      <div class="login-badge">
+        <span class="material-symbols-outlined" style="font-size:15px">shield</span>
+        Level 5 &bull; Restricted Access
+      </div>
+    </div>
+  </div>
+
+  <!-- Nav -->
+  <nav class="sticky top-0 z-50 bg-white border-b border-slate-200 px-6 py-4 shadow-sm">
+    <div class="max-w-7xl mx-auto flex items-center justify-between">
+      <a href="admin_dashboard.html" class="flex items-center gap-3 hover:opacity-80 transition-opacity">
+        <div class="text-primary flex size-10 items-center justify-center bg-primary/10 rounded-lg">
+          <span class="material-symbols-outlined">security</span>
+        </div>
+        <div>
+          <h1 class="text-lg font-bold leading-tight">Admin Portal</h1>
+          <p class="text-xs text-slate-500 font-medium tracking-wide">Campus Access Control</p>
+        </div>
+      </a>
+      <div class="hidden md:flex items-center gap-8" id="nav-tabs">
+        <button data-target="overview-tab"
+          class="nav-tab flex items-center gap-2 text-primary font-bold text-sm border-b-2 border-primary py-1 transition-colors hover:text-primary">
+          <span class="material-symbols-outlined text-[20px]">dashboard</span><span>Overview</span>
+        </button>
+
+        <button data-target="zones-tab"
+          class="nav-tab flex items-center gap-2 text-slate-500 text-sm font-medium py-1 transition-colors hover:text-primary border-b-2 border-transparent">
+          <span class="material-symbols-outlined text-[20px]">domain</span><span>Zones</span>
+        </button>
+        <button data-target="logs-tab"
+          class="nav-tab flex items-center gap-2 text-slate-500 text-sm font-medium py-1 transition-colors hover:text-primary border-b-2 border-transparent">
+          <span class="material-symbols-outlined text-[20px]">list_alt</span><span>Logs</span>
+        </button>
+
+        <button data-target="users-tab"
+          class="nav-tab flex items-center gap-2 text-slate-500 text-sm font-medium py-1 transition-colors hover:text-primary border-b-2 border-transparent">
+          <span class="material-symbols-outlined text-[20px]">group</span><span>Users</span>
+        </button>
+
+        <button data-target="scanner-tab"
+          class="nav-tab flex items-center gap-2 text-slate-500 text-sm font-medium py-1 transition-colors hover:text-primary border-b-2 border-transparent">
+          <span class="material-symbols-outlined text-[20px]">qr_code_scanner</span><span>QR Scanner</span>
+        </button>
+        <button data-target="system-tab"
+          class="nav-tab flex items-center gap-2 text-slate-500 text-sm font-medium py-1 transition-colors hover:text-primary border-b-2 border-transparent">
+          <span class="material-symbols-outlined text-[20px]">settings</span><span>System</span>
+        </button>
+      </div>
+      <div class="flex items-center gap-3">
+        <div class="text-right hidden sm:block">
+          <p id="nav-user-name" class="text-xs font-bold text-slate-900">Admin User</p>
+          <p class="text-[10px] text-slate-500 font-medium">Level 5 Access</p>
+        </div>
+        <div class="size-9 rounded-full bg-slate-200 flex items-center justify-center border-2 border-white shadow-sm">
+          <span class="material-symbols-outlined text-sm text-slate-500">person</span>
+        </div>
+        <a href="index.html"
+          class="flex items-center justify-center size-9 rounded-full bg-red-50 text-red-600 hover:bg-red-100 transition-colors border border-red-200 ml-1"
+          title="Logout">
+          <span class="material-symbols-outlined text-sm">logout</span>
+        </a>
+      </div>
+    </div>
+  </nav>
+
+
+  <!-- SPATAB overview-tab -->
+  <div id="overview-tab" class="tab-pane active-tab w-full max-w-7xl mx-auto p-6 grid grid-cols-12 gap-6">
+
+
+    <!-- ── LEFT COLUMN ─────────────────────────────────────────── -->
+    <div class="col-span-12 lg:col-span-8 flex flex-col gap-6">
+
+      <!-- Stat Cards -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+
+        <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex flex-col gap-1">
+          <h3 class="text-slate-500 text-xs font-bold uppercase tracking-wider">Active Students</h3>
+          <p id="stat-active-students" class="text-3xl font-bold text-slate-900 stat-loading">—</p>
+          <div class="flex items-center gap-1 text-emerald-600 text-xs font-bold">
+            <span class="material-symbols-outlined text-[14px]">trending_up</span>
+            <span id="stat-students-sub">Live count</span>
+          </div>
+        </div>
+
+        <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex flex-col gap-1">
+          <h3 class="text-slate-500 text-xs font-bold uppercase tracking-wider">Campus Occupancy</h3>
+          <p id="stat-occupancy" class="text-3xl font-bold text-primary stat-loading">—</p>
+          <div class="w-full bg-slate-100 h-1.5 rounded-full mt-2 overflow-hidden">
+            <div id="stat-occupancy-bar" class="bg-primary h-full rounded-full transition-all duration-700"
+              style="width:0%"></div>
+          </div>
+        </div>
+
+        <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex flex-col gap-1">
+          <h3 class="text-slate-500 text-xs font-bold uppercase tracking-wider">Security Alerts</h3>
+          <p id="stat-alerts" class="text-3xl font-bold text-red-500 stat-loading">—</p>
+          <p id="stat-alerts-sub" class="text-slate-400 text-xs font-medium">Loading...</p>
+        </div>
+
+      </div>
+
+
+
+      <!-- Peak Hour Traffic Chart -->
+      <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
+        <div class="flex items-center justify-between mb-4">
+          <div>
+            <h3 class="text-lg font-bold">Peak Hour Traffic</h3>
+            <p class="text-slate-500 text-sm">Entry/exit activity by hour — today</p>
+          </div>
+          <select id="chart-range"
+            class="bg-slate-50 border-none text-xs font-bold rounded-lg py-1 px-3 cursor-pointer">
+            <option value="today">Today</option>
+            <option value="yesterday">Yesterday</option>
+            <option value="week">Last 7 Days</option>
+          </select>
+        </div>
+        <div style="position:relative; height:110px;">
+          <canvas id="trafficChart"></canvas>
+        </div>
+        <div class="flex gap-4 mt-3 text-xs font-bold text-slate-500 justify-end">
+          <span class="flex items-center gap-1"><span
+              class="inline-block w-3 h-3 rounded-full bg-indigo-500"></span>Entries</span>
+          <span class="flex items-center gap-1"><span
+              class="inline-block w-3 h-3 rounded-full bg-emerald-400"></span>Exits</span>
+        </div>
+      </div>
+
+      <!-- Access Logs Table -->
+      <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
+        <div class="flex items-center justify-between mb-4">
+          <div>
+            <h3 class="text-lg font-bold">Access Logs</h3>
+            <p class="text-slate-500 text-sm">Recent gate events — last 24 hours</p>
+          </div>
+          <a href="system logs code.html" class="text-xs font-bold text-primary hover:underline">View All</a>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm">
+            <thead>
+              <tr class="text-left text-slate-400 text-xs font-bold uppercase tracking-wider border-b border-slate-100">
+                <th class="pb-3 pr-4">Student</th>
+                <th class="pb-3 pr-4">Gate</th>
+                <th class="pb-3 pr-4">Type</th>
+                <th class="pb-3">Time</th>
+              </tr>
+            </thead>
+            <tbody id="logs-table-body" class="divide-y divide-slate-50">
+              <!-- populated by JS -->
+              <tr>
+                <td colspan="4" class="px-6 py-8 text-center text-slate-400 italic">Connecting to live feed...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ── RIGHT COLUMN ────────────────────────────────────────── -->
+    <div class="col-span-12 lg:col-span-4 flex flex-col gap-6">
+      <div class="bg-white rounded-xl border border-slate-200 shadow-sm flex flex-col sticky top-24"
+        style="max-height:calc(100vh - 140px)">
+        <div class="p-5 border-b border-slate-100 flex justify-between items-center">
+          <h3 class="font-bold text-slate-900">Real-time Activity</h3>
+          <span class="relative flex h-2 w-2">
+            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+            <span class="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+          </span>
+        </div>
+        <div id="activity-feed" class="flex-1 overflow-y-auto p-2 space-y-1"></div>
+        <div class="p-3 border-t border-slate-100">
+          <a href="system logs code.html"
+            class="block w-full py-2 text-xs font-bold text-primary hover:bg-primary/5 rounded-lg transition-colors text-center">View
+            All Logs</a>
+        </div>
+      </div>
+    </div>
+
+
+  </div>
+  <!-- SPATAB zones-tab -->
+  <div id="zones-tab" class="tab-pane hidden flex flex-col px-40 py-10 max-w-[1440px] mx-auto w-full">
+
+    <div class="flex flex-wrap justify-between items-end gap-3 mb-8">
+      <div class="flex flex-col gap-2">
+        <h1 class="text-slate-900 dark:text-white text-4xl font-black leading-tight tracking-[-0.033em]">
+          Gate Settings</h1>
+        <p class="text-slate-600 dark:text-slate-400 text-lg font-normal">Manage enterprise entrance
+          security and monitor real-time traffic.</p>
+      </div>
+
+    </div>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
+      <div
+        class="flex flex-col rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm overflow-hidden">
+        <div class="h-48 bg-slate-200 dark:bg-slate-800 relative">
+          <div class="absolute inset-0 bg-cover bg-center" data-alt="Security camera view of main entrance gate"
+            style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuDv2MIue_sJ7gumUxNVIHuR_C6GT5TDwa1-dOTIfUppWCPeIcrNcYapOa6arH3rDMmpXShUnE9eTayIrJqckYsuc2VxH5HMS1ouOfA4nTp7vlDkA3F-mt5hi7Lfbx8TO-RVxOjUDDfZsM6l_3uH_O0IGxDYluFTmAzLl3MJnwvUCDHIePKtbfngBhCv7QEx3GKs_RT1nt3Lls5k5e1iVAi-DrMbcovZHauIQMpj2pE_JBZJFkqB1qpCY7zWP0X4VY_ZTIKEujbVaO0");'>
+          </div>
+          <div
+            class="absolute top-4 left-4 bg-green-500 text-white text-xs font-bold px-2 py-1 rounded uppercase tracking-wider">
+            Online</div>
+        </div>
+        <div class="p-6 flex flex-col gap-4">
+          <div class="flex justify-between items-start">
+            <div>
+              <h3 class="text-xl font-bold text-slate-900 dark:text-white">Gate A (Main Entrance)
+              </h3>
+              <p class="text-slate-500 text-sm">ID: GT-MAIN-001 • Primary Lobby Access</p>
+            </div>
+            <div class="flex flex-col items-end">
+              <span class="text-xs font-bold text-slate-400 uppercase">Traffic</span>
+              <span class="text-primary font-bold">High (85%)</span>
+            </div>
+          </div>
+          <div class="grid grid-cols-2 gap-3">
+            <div
+              class="flex flex-col items-center justify-center p-4 bg-indigo-50 dark:bg-indigo-900/20 rounded-xl border border-indigo-100 dark:border-indigo-900/40">
+              <span class="material-symbols-outlined text-indigo-500 mb-1">login</span>
+              <p class="text-2xl font-black text-indigo-600 dark:text-indigo-400" id="gateA-entries">—</p>
+              <p class="text-xs font-bold text-indigo-400 uppercase tracking-wider mt-0.5">Total Entries</p>
+            </div>
+            <div
+              class="flex flex-col items-center justify-center p-4 bg-emerald-50 dark:bg-emerald-900/20 rounded-xl border border-emerald-100 dark:border-emerald-900/40">
+              <span class="material-symbols-outlined text-emerald-500 mb-1">logout</span>
+              <p class="text-2xl font-black text-emerald-600 dark:text-emerald-400" id="gateA-exits">—</p>
+              <p class="text-xs font-bold text-emerald-400 uppercase tracking-wider mt-0.5">Total Exits</p>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div
+        class="flex flex-col rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm overflow-hidden">
+        <div class="h-48 bg-slate-200 dark:bg-slate-800 relative">
+          <div class="absolute inset-0 bg-cover bg-center" data-alt="North gate industrial entrance security view"
+            style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuDA3EU9uiRHCgrUZwqGBmig5dfh2N5hDHeKu6j48K0JJ2Ki0NmNXOH-dd__s1Kew33moBNWm_VhJ_FkFziMrTPAGAKVIZvzTQtpQZefgW3CN_NJ7C7yu5A23vnO-HsuNt5Tj-kPgxsujVRoc0XMlJBSFJMeIDf6xrlWOp6_eGGgR2bYy-lp69VbCgP69gYBSv5siZAs5z2ep8nq2_SsRrSE3K45ugFULj1MVjVt9EsG08R7wZ4QA0FZjOdpOPhDGCCkQUiYk_lMFAc");'>
+          </div>
+          <div
+            class="absolute top-4 left-4 bg-green-500 text-white text-xs font-bold px-2 py-1 rounded uppercase tracking-wider">
+            Online</div>
+        </div>
+        <div class="p-6 flex flex-col gap-4">
+          <div class="flex justify-between items-start">
+            <div>
+              <h3 class="text-xl font-bold text-slate-900 dark:text-white">Gate B (North Gate)
+              </h3>
+              <p class="text-slate-500 text-sm">ID: GT-NORTH-002 • Logistics &amp; Loading</p>
+            </div>
+            <div class="flex flex-col items-end">
+              <span class="text-xs font-bold text-slate-400 uppercase">Traffic</span>
+              <span class="text-primary font-bold">Low (12%)</span>
+            </div>
+          </div>
+          <div class="grid grid-cols-2 gap-3">
+            <div
+              class="flex flex-col items-center justify-center p-4 bg-indigo-50 dark:bg-indigo-900/20 rounded-xl border border-indigo-100 dark:border-indigo-900/40">
+              <span class="material-symbols-outlined text-indigo-500 mb-1">login</span>
+              <p class="text-2xl font-black text-indigo-600 dark:text-indigo-400" id="gateB-entries">—</p>
+              <p class="text-xs font-bold text-indigo-400 uppercase tracking-wider mt-0.5">Total Entries</p>
+            </div>
+            <div
+              class="flex flex-col items-center justify-center p-4 bg-emerald-50 dark:bg-emerald-900/20 rounded-xl border border-emerald-100 dark:border-emerald-900/40">
+              <span class="material-symbols-outlined text-emerald-500 mb-1">logout</span>
+              <p class="text-2xl font-black text-emerald-600 dark:text-emerald-400" id="gateB-exits">—</p>
+              <p class="text-xs font-bold text-emerald-400 uppercase tracking-wider mt-0.5">Total Exits</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+
+  </div>
+  <!-- SPATAB logs-tab -->
+  <div id="logs-tab" class="tab-pane hidden flex-1 flex flex-col px-4 md:px-10 lg:px-20 py-8 gap-6">
+
+    <div class="flex flex-wrap justify-between items-end gap-4">
+      <div class="flex flex-col gap-1">
+        <h1 class="text-slate-900 dark:text-white text-4xl font-black leading-tight tracking-[-0.033em]">Security Logs
+        </h1>
+        <p class="text-slate-500 dark:text-slate-400 text-base font-normal leading-normal">Real-time monitoring of
+          campus access events and student movement.</p>
+      </div>
+      <div class="flex gap-3">
+        <button
+          class="flex min-w-[84px] max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-xl h-10 px-4 bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100 text-sm font-bold leading-normal tracking-[0.015em] border border-slate-200 dark:border-slate-700 hover:bg-slate-200 transition-colors">
+          <span class="material-symbols-outlined mr-2 text-[18px]">download</span>
+          <span class="truncate">Export CSV</span>
+        </button>
+      </div>
+    </div>
+    <div
+      class="flex flex-wrap gap-4 items-center bg-white dark:bg-slate-900/50 p-4 rounded-xl border border-slate-200 dark:border-slate-800">
+      <div class="flex gap-2">
+        <button
+          class="flex h-10 shrink-0 items-center justify-center gap-x-2 rounded-lg bg-primary text-white px-4 text-sm font-semibold">
+          All Events
+        </button>
+        <button
+          class="flex h-10 shrink-0 items-center justify-center gap-x-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-4 text-sm font-medium hover:bg-slate-200 transition-colors">
+          Denied
+        </button>
+        <button
+          class="flex h-10 shrink-0 items-center justify-center gap-x-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-4 text-sm font-medium hover:bg-slate-200 transition-colors">
+          Failed Auth
+        </button>
+      </div>
+      <div class="h-8 w-px bg-slate-200 dark:bg-slate-700 hidden sm:block"></div>
+      <div class="flex items-center gap-2 flex-1 min-w-[300px]">
+        <div
+          class="flex-1 flex items-center bg-slate-100 dark:bg-slate-800 rounded-lg px-3 py-2 border border-slate-200 dark:border-slate-700">
+          <span class="material-symbols-outlined text-slate-500 text-[18px] mr-2">calendar_today</span>
+          <span class="text-sm text-slate-700 dark:text-slate-300">Oct 27, 2023 - Oct 28, 2023</span>
+          <span class="material-symbols-outlined text-slate-500 text-[18px] ml-auto">expand_more</span>
+        </div>
+        <button
+          class="flex size-10 items-center justify-center rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
+          <span class="material-symbols-outlined">filter_list</span>
+        </button>
+      </div>
+    </div>
+    <div class="flex-1 @container">
+      <div
+        class="overflow-hidden rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm">
+        <table class="w-full text-left border-collapse">
+          <thead>
+            <tr class="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800">
+              <th
+                class="px-6 py-4 text-slate-900 dark:text-slate-100 text-sm font-bold leading-normal uppercase tracking-wider">
+                Timestamp</th>
+              <th
+                class="px-6 py-4 text-slate-900 dark:text-slate-100 text-sm font-bold leading-normal uppercase tracking-wider">
+                Student/User</th>
+              <th
+                class="px-6 py-4 text-slate-900 dark:text-slate-100 text-sm font-bold leading-normal uppercase tracking-wider">
+                Event Type</th>
+              <th
+                class="px-6 py-4 text-slate-900 dark:text-slate-100 text-sm font-bold leading-normal uppercase tracking-wider">
+                Gate/Location</th>
+              <th
+                class="px-6 py-4 text-slate-900 dark:text-slate-100 text-sm font-bold leading-normal uppercase tracking-wider">
+                Result</th>
+            </tr>
+          </thead>
+          <tbody id="main-logs-table-body" class="divide-y divide-slate-100 dark:divide-slate-800">
+            <!-- populated by JS -->
+            <tr>
+              <td colspan="5" class="px-6 py-8 text-center text-slate-400 italic font-medium">Waiting for security
+                logs...</td>
+            </tr>
+          </tbody>
+        </table>
+        <div
+          class="flex items-center justify-between px-6 py-4 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-200 dark:border-slate-800">
+          <p class="text-sm text-slate-600 dark:text-slate-400">Showing 1 to 6 of 152 events</p>
+          <div class="flex gap-2">
+            <button
+              class="px-3 py-1 text-sm font-medium rounded border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 disabled:opacity-50"
+              disabled="">Previous</button>
+            <button
+              class="px-3 py-1 text-sm font-medium rounded border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300">Next</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- SPATAB users-tab -->
+  <div id="users-tab" class="tab-pane hidden flex-1 flex flex-col px-4 md:px-10 lg:px-20 py-8 gap-6">
+    <!-- Users Tab -->
+    <div class="flex flex-wrap items-center justify-between gap-4">
+      <div>
+        <h2 class="text-2xl font-bold text-slate-900 dark:text-slate-100">Student Management</h2>
+        <p class="text-slate-500 dark:text-slate-400">View and manage campus student records.</p>
+      </div>
+      <div class="flex items-center gap-3">
+        <div class="relative">
+          <span
+            class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[20px]">search</span>
+          <input type="text" id="user-search" placeholder="Search name or ID..."
+            class="pl-10 pr-4 py-2 rounded-xl border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-sm focus:ring-primary focus:border-primary w-64">
+        </div>
+        <button onclick="window.seedData()"
+          class="px-4 py-2 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-xl font-bold text-sm hover:bg-slate-200 dark:hover:bg-slate-700 transition-all flex items-center gap-2">
+          <span class="material-symbols-outlined text-[20px]">refresh</span> Sync
+        </button>
+      </div>
+    </div>
+
+    <div
+      class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden shadow-sm">
+      <table class="w-full text-left border-collapse">
+        <thead>
+          <tr class="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800">
+            <th class="px-6 py-4 text-slate-900 dark:text-slate-100 text-sm font-bold uppercase tracking-wider">Student
+            </th>
+            <th class="px-6 py-4 text-slate-900 dark:text-slate-100 text-sm font-bold uppercase tracking-wider">Contact
+            </th>
+            <th class="px-6 py-4 text-slate-900 dark:text-slate-100 text-sm font-bold uppercase tracking-wider">
+              Faculty/Year</th>
+            <th class="px-6 py-4 text-slate-900 dark:text-slate-100 text-sm font-bold uppercase tracking-wider">Status
+            </th>
+            <th
+              class="px-6 py-4 text-slate-900 dark:text-slate-100 text-sm font-bold uppercase tracking-wider text-right">
+              Actions</th>
+          </tr>
+        </thead>
+        <tbody id="users-table-body" class="divide-y divide-slate-100 dark:divide-slate-800">
+          <!-- JS populated -->
+          <tr>
+            <td colspan="5" class="px-6 py-8 text-center text-slate-400 italic">No users found. Ensure you are online.
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Edit User Modal -->
+  <div id="edit-user-modal"
+    class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm opacity-0 pointer-events-none transition-all duration-300">
+    <div
+      class="bg-white dark:bg-slate-900 w-full max-w-lg rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden transform scale-95 transition-all">
+      <div
+        class="px-8 py-6 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-800/30">
+        <h3 class="text-xl font-bold text-slate-900 dark:text-slate-100">Edit Student Record</h3>
+        <button onclick="closeEditModal()"
+          class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors">
+          <span class="material-symbols-outlined">close</span>
+        </button>
+      </div>
+      <form id="edit-user-form" class="p-8 space-y-5">
+        <input type="hidden" id="edit-uid">
+        <div class="grid grid-cols-2 gap-4">
+          <div class="col-span-2 space-y-1.5">
+            <label class="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Full Name</label>
+            <input type="text" id="edit-name"
+              class="w-full px-4 py-2.5 rounded-xl border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all">
+          </div>
+          <div class="col-span-2 space-y-1.5">
+            <label class="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Email Address</label>
+            <input type="email" id="edit-email"
+              class="w-full px-4 py-2.5 rounded-xl border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all">
+          </div>
+          <div class="space-y-1.5">
+            <label class="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Reg Number</label>
+            <input type="text" id="edit-reg"
+              class="w-full px-4 py-2.5 rounded-xl border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all">
+          </div>
+          <div class="space-y-1.5">
+            <label class="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Faculty</label>
+            <input type="text" id="edit-faculty"
+              class="w-full px-4 py-2.5 rounded-xl border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all">
+          </div>
+        </div>
+        <div class="pt-4 flex gap-3">
+          <button type="button" onclick="closeEditModal()"
+            class="flex-1 px-6 py-3 rounded-xl border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 font-bold hover:bg-slate-50 dark:hover:bg-slate-800 transition-all">Cancel</button>
+          <button type="submit"
+            class="flex-[2] px-6 py-3 rounded-xl bg-primary text-white font-bold hover:bg-primary-dark transition-all shadow-lg shadow-primary/20">Save
+            Changes</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- SPATAB scanner-tab -->
+  <div id="scanner-tab" class="tab-pane hidden flex-1 flex flex-col items-center justify-center p-6 gap-8">
+    <div class="max-w-xl w-full flex flex-col gap-6">
+      <div class="text-center">
+        <h2 class="text-3xl font-black text-slate-900 mb-2">Campus Entrance Scan</h2>
+        <p class="text-slate-500 font-medium">Place student QR code within the frame for verification</p>
+      </div>
+
+      <!-- Scanner UI -->
+      <div
+        class="relative aspect-square w-full max-w-sm mx-auto overflow-hidden rounded-3xl border-4 border-white shadow-2xl bg-slate-900 group">
+        <div id="reader" class="w-full h-full"></div>
+
+        <!-- Scanning Overlay -->
+        <div id="scanner-overlay" class="absolute inset-0 pointer-events-none flex items-center justify-center">
+          <div class="w-4/5 h-4/5 border-2 border-primary/50 rounded-2xl relative">
+            <div class="absolute inset-0 border-2 border-primary rounded-2xl animate-pulse"></div>
+            <!-- Corner Accents -->
+            <div class="absolute -top-1 -left-1 size-6 border-t-4 border-l-4 border-primary rounded-tl-lg"></div>
+            <div class="absolute -top-1 -right-1 size-6 border-t-4 border-r-4 border-primary rounded-tr-lg"></div>
+            <div class="absolute -bottom-1 -left-1 size-6 border-b-4 border-l-4 border-primary rounded-bl-lg"></div>
+            <div class="absolute -bottom-1 -right-1 size-6 border-b-4 border-r-4 border-primary rounded-br-lg"></div>
+          </div>
+        </div>
+
+        <!-- Success/Error Overlay -->
+        <div id="scan-result-overlay"
+          class="absolute inset-0 z-20 flex flex-col items-center justify-center bg-emerald-500/90 text-white opacity-0 pointer-events-none transition-all duration-300 scale-110">
+          <span id="scan-result-icon" class="material-symbols-outlined text-7xl mb-4">check_circle</span>
+          <h3 id="scan-result-title" class="text-2xl font-bold">Access Granted</h3>
+          <p id="scan-result-msg" class="text-emerald-50 text-sm mt-1">Student: Aiden Perera</p>
+        </div>
+      </div>
+
+      <!-- Controls -->
+      <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+        <div class="flex flex-col gap-2">
+          <label class="text-xs font-bold text-slate-400 uppercase tracking-widest px-1">Location / Gate</label>
+          <select id="scanner-gate"
+            class="w-full bg-slate-50 border-slate-200 rounded-xl py-3 px-4 font-bold text-slate-700 outline-none focus:ring-2 focus:ring-primary/20">
+            <option value="Gate A (Main Entrance)">Gate A (Main Entrance)</option>
+            <option value="Gate B (North Gate)">Gate B (North Gate)</option>
+            <option value="Science Wing Entrance">Science Wing Entrance</option>
+            <option value="Library Entrance">Library Entrance</option>
+          </select>
+        </div>
+
+        <div class="flex gap-3">
+          <button id="btn-start-scanner"
+            class="flex-1 bg-primary text-white h-12 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-primary-dark transition-all">
+            <span class="material-symbols-outlined text-[20px]">videocam</span> Start Camera
+          </button>
+          <button id="btn-stop-scanner"
+            class="flex-1 bg-slate-100 text-slate-500 h-12 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-slate-200 transition-all opacity-50 cursor-not-allowed"
+            disabled>
+            <span class="material-symbols-outlined text-[20px]">videocam_off</span> Stop
+          </button>
+        </div>
+
+        <div class="relative">
+          <div class="absolute inset-0 flex items-center">
+            <div class="w-full border-t border-slate-100"></div>
+          </div>
+          <div class="relative flex justify-center text-xs uppercase">
+            <span class="bg-white px-3 text-slate-400 font-bold">OR MANUAL ENTRY</span>
+          </div>
+        </div>
+
+        <div class="flex gap-2">
+          <input id="manual-uid" type="text" placeholder="Enter Student UID..."
+            class="flex-1 bg-slate-50 border-slate-200 rounded-xl py-3 px-4 text-sm font-medium outline-none focus:ring-2 focus:ring-primary/20">
+          <button id="btn-manual-verify"
+            class="bg-slate-900 text-white px-6 rounded-xl font-bold hover:bg-slate-800 transition-all">Verify</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SPATAB system-tab -->
+  <div id="system-tab" class="tab-pane hidden flex flex-1 justify-center py-8">
+
+    <div class="layout-content-container flex flex-col max-w-[960px] flex-1 px-4">
+      <!-- Page Header -->
+      <div class="flex flex-wrap justify-between gap-3 pb-6 border-b border-slate-200 dark:border-slate-800 mb-8">
+        <div class="flex flex-col gap-1">
+          <p class="text-slate-900 dark:text-slate-100 text-4xl font-black leading-tight tracking-[-0.033em]">
+            System Settings</p>
+          <p class="text-slate-500 dark:text-slate-400 text-base font-normal leading-normal">Configure
+            global access rules, security protocols, and alert thresholds.</p>
+        </div>
+      </div>
+      <!-- Sidebar Layout Simulation with Tabs -->
+      <div class="flex flex-col lg:flex-row gap-8">
+        <!-- Sidebar -->
+        <div class="w-full lg:w-64 flex flex-col gap-2 shrink-0" id="system-sidebar">
+          <div data-section="system-general"
+            class="system-nav-item flex items-center gap-3 px-3 py-2 rounded-xl bg-primary/10 text-primary cursor-pointer transition-all">
+            <span class="material-symbols-outlined">settings</span>
+            <p class="text-sm font-semibold">General System</p>
+          </div>
+          <div data-section="system-security"
+            class="system-nav-item flex items-center gap-3 px-3 py-2 rounded-xl text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer transition-all">
+            <span class="material-symbols-outlined">security</span>
+            <p class="text-sm font-medium">Security &amp; MFA</p>
+          </div>
+          <div data-section="system-access"
+            class="system-nav-item flex items-center gap-3 px-3 py-2 rounded-xl text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer transition-all">
+            <span class="material-symbols-outlined">key</span>
+            <p class="text-sm font-medium">Access Control</p>
+          </div>
+        </div>
+        <!-- Content Sections -->
+        <div class="flex-1 flex flex-col gap-10" id="system-content-area">
+          <!-- SECTION: General System -->
+          <div id="system-general" class="system-section space-y-10">
+            <!-- Global Access Rules -->
+            <section>
+              <div class="flex items-center gap-2 mb-4 text-slate-900 dark:text-slate-100">
+                <span class="material-symbols-outlined">public</span>
+                <h3 class="text-xl font-bold leading-tight tracking-[-0.015em]">Global Access Rules</h3>
+              </div>
+              <div class="space-y-4">
+                <!-- Holiday Mode -->
+                <div
+                  class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 shadow-sm">
+                  <div class="flex flex-col gap-1">
+                    <p class="text-slate-900 dark:text-slate-100 text-base font-bold leading-tight">Holiday Mode</p>
+                    <p class="text-slate-500 dark:text-slate-400 text-sm font-normal leading-normal">
+                      Automatically trigger heightened security protocols during scheduled campus holidays.</p>
+                  </div>
+                  <label class="relative inline-flex items-center cursor-pointer">
+                    <input checked="" class="sr-only peer" type="checkbox" value="" />
+                    <div
+                      class="w-11 h-6 bg-slate-200 dark:bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary">
+                    </div>
+                  </label>
+                </div>
+              </div>
+            </section>
+          </div>
+
+          <!-- SECTION: Security & MFA -->
+          <div id="system-security" class="system-section hidden space-y-10">
+            <section>
+              <div class="flex items-center gap-2 mb-4 text-slate-900 dark:text-slate-100">
+                <span class="material-symbols-outlined">admin_panel_settings</span>
+                <h3 class="text-xl font-bold leading-tight tracking-[-0.015em]">Security Protocols</h3>
+              </div>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <!-- MFA Enforcement -->
+                <div
+                  class="flex flex-col gap-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 shadow-sm">
+                  <p class="text-slate-900 dark:text-slate-100 text-base font-bold">MFA Enforcement Level</p>
+                  <div class="flex flex-col gap-2">
+                    <label class="flex items-center gap-2 cursor-pointer">
+                      <input checked=""
+                        class="text-primary focus:ring-primary border-slate-300 dark:border-slate-700 bg-transparent"
+                        name="mfa2" type="radio" />
+                      <span class="text-sm text-slate-700 dark:text-slate-300 font-medium">Standard (App or
+                        Email)</span>
+                    </label>
+                    <label class="flex items-center gap-2 cursor-pointer opacity-50">
+                      <input disabled
+                        class="text-primary focus:ring-primary border-slate-300 dark:border-slate-700 bg-transparent"
+                        name="mfa2" type="radio" />
+                      <span class="text-sm text-slate-700 dark:text-slate-300 font-medium italic">Hardware Keys
+                        (Future)</span>
+                    </label>
+                  </div>
+                </div>
+                <!-- Session Duration -->
+                <div
+                  class="flex flex-col gap-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 shadow-sm">
+                  <p class="text-slate-900 dark:text-slate-100 text-base font-bold">Session Duration</p>
+                  <select
+                    class="form-select rounded-lg border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 text-sm focus:border-primary focus:ring-primary h-10 px-3">
+                    <option>4 Hours</option>
+                    <option selected="">8 Hours (Standard Shift)</option>
+                    <option>12 Hours</option>
+                    <option>24 Hours</option>
+                  </select>
+                </div>
+                <!-- QR Verification Level -->
+                <div
+                  class="flex flex-col gap-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 shadow-sm">
+                  <p class="text-slate-900 dark:text-slate-100 text-base font-bold">QR Verification Method</p>
+                  <select
+                    class="form-select rounded-lg border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 text-sm focus:border-primary focus:ring-primary h-10 px-3">
+                    <option selected="">Standard Static QR</option>
+                    <option>Dynamic (Time-Refresh) QR</option>
+                    <option>Encrypted Secure QR</option>
+                  </select>
+                </div>
+                <!-- Password Policy -->
+                <div
+                  class="flex flex-col gap-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 shadow-sm">
+                  <p class="text-slate-900 dark:text-slate-100 text-base font-bold">Password Policy</p>
+                  <div class="flex flex-col gap-2">
+                    <div class="flex items-center justify-between">
+                      <span class="text-sm text-slate-600 dark:text-slate-400">Min Length</span>
+                      <input type="number" value="12"
+                        class="w-16 h-8 text-sm rounded-lg border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 px-2">
+                    </div>
+                    <label class="flex items-center justify-between cursor-pointer">
+                      <span class="text-sm text-slate-600 dark:text-slate-400">Require Special Chars</span>
+                      <input type="checkbox" checked class="rounded text-primary focus:ring-primary border-slate-300">
+                    </label>
+                  </div>
+                </div>
+              </div>
+            </section>
+          </div>
+
+          <!-- SECTION: Access Control -->
+          <div id="system-access" class="system-section hidden space-y-10">
+            <section>
+              <div class="flex items-center gap-2 mb-4 text-slate-900 dark:text-slate-100">
+                <span class="material-symbols-outlined">key</span>
+                <h3 class="text-xl font-bold leading-tight tracking-[-0.015em]">Access Control Management</h3>
+              </div>
+              <div class="space-y-4">
+                <!-- Gate Locking Schedule -->
+                <div
+                  class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 shadow-sm">
+                  <div class="flex flex-col gap-1">
+                    <p class="text-slate-900 dark:text-slate-100 text-base font-bold leading-tight">Auto-Lock Schedule
+                    </p>
+                    <p class="text-slate-500 dark:text-slate-400 text-sm font-normal leading-normal">
+                      Automatically lock all non-essential gates after 10:00 PM.</p>
+                  </div>
+                  <label class="relative inline-flex items-center cursor-pointer">
+                    <input checked="" class="sr-only peer" type="checkbox" value="" />
+                    <div
+                      class="w-11 h-6 bg-slate-200 dark:bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary">
+                    </div>
+                  </label>
+                </div>
+
+                <!-- ID Validity -->
+                <div
+                  class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 shadow-sm">
+                  <div class="flex flex-col gap-1">
+                    <p class="text-slate-900 dark:text-slate-100 text-base font-bold leading-tight">Default ID Validity
+                    </p>
+                    <p class="text-slate-500 dark:text-slate-400 text-sm font-normal leading-normal">
+                      Set how long a digital student ID remains valid before re-verification.</p>
+                  </div>
+                  <select
+                    class="form-select rounded-lg border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 text-sm h-10 px-3">
+                    <option>1 Semester</option>
+                    <option selected="">1 Academic Year</option>
+                    <option>Full Degree Duration</option>
+                  </select>
+                </div>
+
+                <!-- Emergency Lockdown -->
+                <div
+                  class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 rounded-xl border-2 border-red-100 dark:border-red-900/30 bg-red-50/50 dark:bg-red-900/10 p-5 shadow-sm">
+                  <div class="flex flex-col gap-1">
+                    <p class="text-red-700 dark:text-red-400 text-base font-bold leading-tight flex items-center gap-2">
+                      <span class="material-symbols-outlined">emergency_home</span> Campus Lockdown
+                    </p>
+                    <p class="text-red-600/70 dark:text-red-400/60 text-sm font-medium leading-normal">
+                      Instantly revoke access to all gates and lockdown the campus. Use only in extreme emergencies.</p>
+                  </div>
+                  <button
+                    class="px-6 py-2 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl shadow-lg shadow-red-600/20 transition-all active:scale-95">
+                    Activate Lockdown
+                  </button>
+                </div>
+              </div>
+            </section>
+          </div>
+          <!-- Actions Footer -->
+          <div class="flex justify-end gap-4 pt-6 border-t border-slate-200 dark:border-slate-800">
+            <button
+              class="px-6 py-2 rounded-xl text-slate-600 dark:text-slate-400 font-bold hover:bg-slate-100 dark:hover:bg-slate-800 transition-all">Discard
+              Changes</button>
+            <button
+              class="px-6 py-2 rounded-xl bg-primary text-white font-bold hover:opacity-90 transition-all shadow-lg shadow-primary/20">Save
+              System Configuration</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  </div>
+
+  <!-- History Modal -->
+  <div id="history-modal" class="hidden fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300">
+    <div class="bg-white dark:bg-slate-900 w-full max-w-2xl rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[85vh] border border-slate-200 dark:border-slate-800 scale-in-center">
+      <div class="px-6 py-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-800/30">
+        <div>
+          <h3 class="text-xl font-black text-slate-900 dark:text-white tracking-tight" id="hist-modal-title">Student History</h3>
+          <p class="text-[11px] font-bold text-slate-500 uppercase tracking-widest mt-0.5">Access Control Records</p>
+        </div>
+        <button onclick="closeHistModal()" class="size-10 rounded-xl hover:bg-slate-200 dark:hover:bg-slate-800 flex items-center justify-center transition-colors">
+          <span class="material-symbols-outlined text-slate-500">close</span>
+        </button>
+      </div>
+      <div class="flex-1 overflow-y-auto p-4" id="hist-modal-content">
+        <!-- populated by JS -->
+      </div>
+    </div>
+  </div>
+
+  <!-- ── SCRIPTS ────────────────────────────────────────────────── -->
+  <script>
+    // --- History Modal Logic ---
+    window.viewStudentHistory = async (uid, name) => {
+      document.getElementById("hist-modal-title").textContent = name + "'s History";
+      const content = document.getElementById("hist-modal-content");
+      document.getElementById("history-modal").classList.remove("hidden");
+      
+      content.innerHTML = `
+        <div class="flex flex-col items-center justify-center py-12 gap-3 text-slate-400">
+          <span class="material-symbols-outlined text-4xl animate-spin">sync</span>
+          <p class="text-sm font-bold tracking-tight">Retrieving records...</p>
+        </div>`;
+
+      try {
+        // Fetch full student details to get all possible IDs (UID, Email, DocID)
+        const studentSnap = await db.collection("students").doc(uid).get();
+        let studentData = studentSnap.exists ? studentSnap.data() : {};
+        
+        // Consolidate all possible identifiers to search history for
+        const searchIds = [...new Set([
+          uid,                           // Document ID (e.g. stu013)
+          studentData.email || "",       // Email
+          studentData.uid || ""          // Auth UID (e.g. portal login ID)
+        ])].filter(s => s && s.length > 2);
+
+        // Query logs for all student identifiers
+        const snap = await db.collection("accessLogs").where("uid", "in", searchIds).get();
+        let logs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        
+        // Sort newest first in-memory (to avoid index requirements for multi-id query)
+        logs.sort((a, b) => {
+          const tA = (a.timestamp?.seconds || 0) || (a._ts ? a._ts/1000 : 0);
+          const tB = (b.timestamp?.seconds || 0) || (b._ts ? b._ts/1000 : 0);
+          return tB - tA;
+        });
+
+        if (logs.length === 0) {
+          content.innerHTML = `
+            <div class="flex flex-col items-center justify-center py-16 text-slate-400">
+              <span class="material-symbols-outlined text-5xl mb-2 opacity-20">history_toggle_off</span>
+              <p class="text-sm font-bold">No access logs found for this student.</p>
+            </div>`;
+          return;
+        }
+
+        let html = `
+          <div class="grid grid-cols-1 gap-3">`;
+        
+        logs.forEach(log => {
+          const isEntry = log.type === "entry";
+          const colorClass = isEntry ? "text-emerald-600 bg-emerald-50" : "text-amber-600 bg-amber-50";
+          const icon = isEntry ? "login" : "logout";
+          
+          html += `
+            <div class="flex items-center gap-4 p-4 rounded-2xl border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900/50 shadow-sm">
+              <div class="size-10 rounded-xl ${colorClass} flex items-center justify-center">
+                <span class="material-symbols-outlined text-xl font-bold">${icon}</span>
+              </div>
+              <div class="flex-1">
+                <p class="text-slate-900 dark:text-white text-sm font-bold">${log.gate || "Main Gate"}</p>
+                <div class="flex items-center gap-2 mt-1">
+                  <span class="text-[10px] font-black uppercase tracking-widest ${isEntry ? 'text-emerald-600' : 'text-amber-600'}">${log.type}</span>
+                  <span class="size-1 rounded-full bg-slate-300"></span>
+                  <span class="text-[10px] text-slate-500 font-bold">${fmtDateLabel(log.timestamp)} at ${fmtTime(log.timestamp)}</span>
+                </div>
+              </div>
+            </div>`;
+        });
+        
+        html += `</div>`;
+        content.innerHTML = html;
+
+      } catch (err) {
+        console.error("Hist error:", err);
+        content.innerHTML = `<p class="p-8 text-center text-red-500 font-bold text-sm">Failed to load history: ${err.message}</p>`;
+      }
+    };
+
+    window.closeHistModal = () => {
+      document.getElementById("history-modal").classList.add("hidden");
+    };
+
+    // --- HELPERS & SHARED STATE ---
+    const HOURS = ["7am", "8am", "9am", "10am", "11am", "12pm", "1pm", "2pm", "3pm", "4pm", "5pm", "6pm"];
+    const LS_LOGS_KEY = "admin_cached_logs";
+    let allStudents = [];
+    let currentLogs = [];
+    let db, auth;
+
+    // Load cached logs from localStorage immediately so logs appear before Firestore responds
+    try {
+      const cached = localStorage.getItem(LS_LOGS_KEY);
+      if (cached) {
+        currentLogs = JSON.parse(cached);
+        // Re-hydrate timestamps (stored as seconds in cache)
+        currentLogs = currentLogs.map(l => ({
+          ...l,
+          timestamp: l._ts ? { toDate: () => new Date(l._ts), seconds: l._ts / 1000 } : l.timestamp
+        }));
+      }
+    } catch(e) { /* ignore cache errors */ }
+
+    function saveLogsToCache(logs) {
+      try {
+        const cacheable = logs.slice(0, 50).map(l => ({
+          ...l,
+          _ts: l.timestamp?.toDate ? l.timestamp.toDate().getTime() :
+               (l.timestamp?.seconds ? l.timestamp.seconds * 1000 : Date.now())
+        }));
+        localStorage.setItem(LS_LOGS_KEY, JSON.stringify(cacheable));
+      } catch(e) { /* ignore */ }
+    }
+
+    function renderAll() {
+      // Compute live stats from real data (Count unique students by email)
+      const uniqueEmails = new Set();
+      const activeStudentsArr = allStudents.filter(s => {
+        if (!s.email || s.campusStatus !== "inside" || uniqueEmails.has(s.email.toLowerCase())) return false;
+        uniqueEmails.add(s.email.toLowerCase());
+        return true;
+      });
+      const activeStudents = activeStudentsArr.length;
+      const totalCapacity = 500; // max campus capacity
+      const occupancyPercent = Math.min(100, Math.round((activeStudents / totalCapacity) * 100));
+
+      // Security alerts = bypass or denied events in last 24 hours
+      const now = Date.now();
+      const securityAlerts = currentLogs.filter(l => {
+        const isAlert = l.type === "bypass" || l.type === "denied";
+        const ts = l.timestamp?.toDate ? l.timestamp.toDate().getTime() :
+                   (l.timestamp?.seconds ? l.timestamp.seconds * 1000 : l._ts || 0);
+        return isAlert && (now - ts) < 86400000;
+      }).length;
+
+      renderStats({ activeStudents, occupancyPercent, securityAlerts });
+      renderUsers(allStudents);
+      renderTable(currentLogs);
+      renderFeed(currentLogs);
+      renderGateStats(currentLogs);
+      renderChart(processTraffic(currentLogs));
+    }
+
+    // ── Helpers ──────────────────────────────────────────────────────────────
+    function fmtAge(minsAgo) {
+      if (minsAgo < 1) return "Just now";
+      if (minsAgo < 60) return `${Math.round(minsAgo)}m ago`;
+      const h = Math.floor(minsAgo / 60);
+      const m = Math.round(minsAgo % 60);
+      return m ? `${h}h ${m}m ago` : `${h}h ago`;
+    }
+    function fmtTime(ts) {
+      if (!ts) return "—";
+      // Handle serverTimestamp still pending sync (null seconds/toDate)
+      if (typeof ts === 'object' && ts !== null && ts.seconds === undefined && ts.toDate === undefined && !(ts instanceof Date)) return "Syncing...";
+      const d = ts.toDate ? ts.toDate() : new Date(ts);
+      return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    }
+    function fmtDateLabel(ts) {
+      if (!ts) return "";
+      if (ts.seconds === undefined && ts.toDate === undefined && typeof ts !== 'number' && !(ts instanceof Date)) return "Today";
+      const d = ts.toDate ? ts.toDate() : new Date(ts);
+      const today = new Date(); today.setHours(0, 0, 0, 0);
+      const yesterday = new Date(today); yesterday.setDate(today.getDate() - 1);
+      const day = new Date(d); day.setHours(0, 0, 0, 0);
+      if (day.getTime() === today.getTime()) return "Today";
+      if (day.getTime() === yesterday.getTime()) return "Yesterday";
+      return d.toLocaleDateString([], { weekday: "short", month: "short", day: "numeric" });
+    }
+    function typeStyle(type) {
+      if (type === "entry") return { border: "border-green-500", badge: "text-green-600 bg-green-50", label: "Authorized", icon: "check_circle" };
+      if (type === "exit") return { border: "border-blue-500", badge: "text-blue-600 bg-blue-50", label: "Exit Logged", icon: "arrow_forward" };
+      if (type === "bypass") return { border: "border-emerald-500", badge: "text-emerald-700 bg-emerald-50", label: "Authorized (Bypass)", icon: "verified_user" };
+      return { border: "border-red-500", badge: "text-red-600 bg-red-50", label: "Denied", icon: "block" };
+    }
+
+    // ── Render stat cards ─────────────────────────────────────────────────────
+    function renderStats(s) {
+      const el = id => document.getElementById(id);
+      const a = s.activeStudents ?? 0;
+      const o = s.occupancyPercent ?? 0;
+      const alerts = s.securityAlerts ?? 0;
+
+      el("stat-active-students").textContent = a.toLocaleString();
+      el("stat-active-students").classList.remove("stat-loading");
+
+      el("stat-occupancy").textContent = o + "%";
+      el("stat-occupancy").classList.remove("stat-loading");
+      el("stat-occupancy-bar").style.width = o + "%";
+
+      el("stat-alerts").textContent = alerts;
+      el("stat-alerts").classList.remove("stat-loading");
+      el("stat-alerts").className = `text-3xl font-bold ${alerts === 0 ? "text-emerald-500" : "text-red-500"}`;
+      el("stat-alerts-sub").textContent = alerts === 0 ? "All clear" : `${alerts} require${alerts === 1 ? "s" : ""} attention`;
+
+    }
+
+    function renderFeed(logs) {
+      const feed = document.getElementById("activity-feed");
+      if (!feed) return;
+
+      if (!logs || logs.length === 0) {
+        feed.innerHTML = `
+          <div class="flex flex-col items-center justify-center p-8 text-center text-slate-400">
+            <span class="material-symbols-outlined text-4xl mb-2">history</span>
+            <p class="text-sm font-medium">No activity recorded yet</p>
+            <p class="text-[10px] mt-1">Live updates will appear here</p>
+          </div>`;
+        return;
+      }
+
+      feed.innerHTML = "";
+      logs.slice(0, 15).forEach((entry, idx) => {
+        const student = allStudents.find(s => s.id === entry.uid || s.id === entry.docId || (s.uid && s.uid === entry.uid) || (s.email && s.email.toLowerCase() === (entry.uid || "").toLowerCase()));
+        // Prefer the name stored in the log doc (set at scan time) so the name always shows correctly
+        const displayName = entry.studentName || student?.displayName || "Unknown Visitor";
+
+        const s = typeStyle(entry.type);
+        const time = entry.minsAgo !== undefined
+          ? fmtAge(entry.minsAgo)
+          : (entry.timestamp ? fmtTime(entry.timestamp) : "—");
+        const isUnknown = displayName === "Unknown Visitor" || displayName.includes("UID:");
+
+        feed.innerHTML += `
+          <div id="feed-item-${idx}" class="flex items-center gap-3 p-3 hover:bg-slate-50 rounded-lg transition-all duration-300 border-l-4 ${s.border} mb-2 bg-white/50 backdrop-blur-sm shadow-sm ring-1 ring-slate-200">
+            <div class="relative shrink-0">
+              ${isUnknown
+            ? `<div class="size-10 rounded-full bg-slate-200 flex items-center justify-center text-slate-400 font-bold text-xs"><span class="material-symbols-outlined text-[20px]">person_off</span></div>`
+            : `<div class="size-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-black text-xs uppercase shadow-inner">${displayName.split(" ").map(w => w[0]).join("").slice(0, 2)}</div>`}
+              <div class="absolute -bottom-1 -right-1 size-4 ${s.badge.includes("green") ? "bg-green-500" : s.badge.includes("blue") ? "bg-blue-500" : "bg-red-500"} border-2 border-white rounded-full flex items-center justify-center shadow-sm">
+                <span class="material-symbols-outlined text-[10px] text-white font-black leading-none">${s.icon}</span>
+              </div>
+            </div>
+            <div class="flex-1 min-w-0 pr-2">
+              <p class="text-slate-900 text-[13px] font-black leading-tight truncate tracking-tight">${displayName}</p>
+              <p class="text-slate-500 text-[10px] font-bold truncate opacity-80">${entry.gate || "Scanning..."}</p>
+            </div>
+            <div class="text-right shrink-0 flex flex-col items-end gap-1">
+              <p class="text-slate-400 text-[9px] font-black uppercase tracking-tighter">${time}</p>
+              <span class="text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full ${s.badge} shadow-sm border border-black/5 whitespace-nowrap">${s.label}</span>
+            </div>
+          </div>`;
+      });
+    }
+
+    // ── Render access logs table ──────────────────────────────────────────────
+    function renderTable(logs) {
+      const tbody = document.getElementById("logs-table-body");
+      const mainTbody = document.getElementById("main-logs-table-body");
+
+      if (!logs || logs.length === 0) {
+        if (tbody) tbody.innerHTML = `<tr><td colspan="4" class="py-12 text-center text-slate-400 italic">No access logs yet.</td></tr>`;
+        if (mainTbody) mainTbody.innerHTML = `<tr><td colspan="5" class="py-12 text-center text-slate-400 italic font-medium">No activity recorded in the database.</td></tr>`;
+        return;
+      }
+
+      const rowsHtml = logs.slice(0, 20).map(entry => {
+        const student = allStudents.find(s => s.id === entry.uid || s.id === entry.docId || (s.uid && s.uid === entry.uid) || (s.email && s.email.toLowerCase() === (entry.uid || "").toLowerCase()));
+        const displayName = entry.studentName || student?.displayName || "Unknown Visitor";
+
+        const s = typeStyle(entry.type);
+        const time = entry.minsAgo !== undefined
+          ? fmtAge(entry.minsAgo)
+          : (entry.timestamp ? fmtTime(entry.timestamp) : "—");
+        const dateLabel = entry.timestamp ? fmtDateLabel(entry.timestamp) : "";
+        const timeDisplay = dateLabel && dateLabel !== "Today" ? `${dateLabel}, ${time}` : time;
+
+        return `
+          <tr class="hover:bg-slate-50/70 transition-colors">
+            <td class="py-3 pr-4 font-semibold text-slate-900">${displayName}</td>
+            <td class="py-3 pr-4 text-slate-500">${entry.gate}</td>
+            <td class="py-3 pr-4">
+              <span class="px-2 py-0.5 rounded-full text-[11px] font-bold ${s.badge}">${s.label}</span>
+            </td>
+            <td class="py-3 text-slate-400 text-xs">${timeDisplay}</td>
+          </tr>`;
+      }).join("");
+
+      if (tbody) tbody.innerHTML = rowsHtml;
+
+      // Also populate the detailed logs tab table
+      if (mainTbody) {
+        mainTbody.innerHTML = logs.map(entry => {
+          const student = allStudents.find(s => s.id === entry.uid || s.id === entry.docId || (s.uid && s.uid === entry.uid) || (s.email && entry.uid && s.email.toLowerCase() === entry.uid.toLowerCase()));
+          const displayName = entry.studentName || student?.displayName || "Unknown";
+
+          const s = typeStyle(entry.type);
+          const time = entry.minsAgo !== undefined
+            ? fmtAge(entry.minsAgo)
+            : (entry.timestamp ? fmtTime(entry.timestamp) : "—");
+          const dateLabel = entry.timestamp ? fmtDateLabel(entry.timestamp) : "";
+          const timestampFull = `${dateLabel} ${time}`;
+          const isUnknown = displayName === "Unknown Visitor" || displayName.includes("UID:");
+
+          return `
+            <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
+              <td class="px-6 py-4 text-slate-500 dark:text-slate-400 text-sm">${timestampFull}</td>
+              <td class="px-6 py-4">
+                <div class="flex items-center gap-3">
+                  <div class="size-8 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-bold">
+                    ${isUnknown ? '<span class="material-symbols-outlined text-[16px]">person_off</span>' : displayName.split(" ").map(w => w[0]).join("").slice(0, 2)}
+                  </div>
+                  <span class="text-slate-900 dark:text-slate-100 text-sm font-medium">${displayName}</span>
+                </div>
+              </td>
+              <td class="px-6 py-4">
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${s.badge}">
+                  ${s.label}
+                </span>
+              </td>
+              <td class="px-6 py-4 text-slate-600 dark:text-slate-300 text-sm">${entry.gate}</td>
+              <td class="px-6 py-4">
+                <span class="inline-flex items-center gap-1.5 ${entry.result === 'denied' ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400'} font-semibold text-sm">
+                  <span class="size-1.5 rounded-full ${entry.result === 'denied' ? 'bg-rose-500' : 'bg-emerald-500'}"></span>
+                  ${entry.result === 'denied' ? 'Denied' : 'Success'}
+                </span>
+              </td>
+            </tr>`;
+        }).join("");
+      }
+    }
+
+    // ── Render chart ──────────────────────────────────────────────────────────
+    let chart;
+    function renderChart(dataset) {
+      const ctx = document.getElementById("trafficChart").getContext("2d");
+      if (chart) chart.destroy();
+      chart = new Chart(ctx, {
+        type: "bar",
+        data: {
+          labels: HOURS,
+          datasets: [
+            { label: "Entries", data: dataset.entries, backgroundColor: "rgba(99,102,241,0.7)", borderRadius: 6, borderSkipped: false },
+            { label: "Exits", data: dataset.exits, backgroundColor: "rgba(52,211,153,0.6)", borderRadius: 6, borderSkipped: false },
+          ]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          animation: false,
+          interaction: { mode: "index", intersect: false },
+          plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => `${ctx.dataset.label}: ${ctx.parsed.y}` } } },
+          scales: {
+            x: { grid: { display: false }, ticks: { color: "#94a3b8", font: { size: 10, weight: "bold" } } },
+            y: { grid: { color: "rgba(148,163,184,.12)" }, ticks: { color: "#94a3b8", font: { size: 10 } }, beginAtZero: true, max: 80 }
+          }
+        }
+      });
+    }
+
+    // ── Render gate entry/exit counts ─────────────────────────────────────────
+    function renderGateStats(logs) {
+      const gateA = { entries: 0, exits: 0 };
+      const gateB = { entries: 0, exits: 0 };
+      logs.forEach(entry => {
+        const gate = (entry.gate || "").toLowerCase();
+        const type = entry.type;
+        if (gate.includes("main gate east") || gate.includes("main entrance") || gate.includes("gate a")) {
+          if (type === "entry") gateA.entries++;
+          else if (type === "exit") gateA.exits++;
+        } else if (gate.includes("north gate") || gate.includes("gate b")) {
+          if (type === "entry") gateB.entries++;
+          else if (type === "exit") gateB.exits++;
+        }
+      });
+      const safeSet = (elId, val) => { const el = document.getElementById(elId); if (el) el.textContent = val; };
+      safeSet("gateA-entries", gateA.entries);
+      safeSet("gateA-exits", gateA.exits);
+      safeSet("gateB-entries", gateB.entries);
+      safeSet("gateB-exits", gateB.exits);
+    }
+
+    // ── Student Management Logic ──────────────────────────────────────────
+
+    function renderUsers(students) {
+      const tbody = document.getElementById("users-table-body");
+      if (!tbody) return;
+
+      const search = document.getElementById("user-search").value.toLowerCase();
+      const filtered = students.filter(s =>
+        (s.displayName || "").toLowerCase().includes(search) ||
+        (s.id || "").toLowerCase().includes(search) ||
+        (s.email || "").toLowerCase().includes(search)
+      );
+
+      if (filtered.length === 0) {
+        if (students.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="6" class="px-6 py-12 text-center text-slate-500 font-medium">
+            <span class="material-symbols-outlined block mb-3 text-4xl text-slate-300">database</span>
+            The student database is currently empty.<br>
+            <button onclick="window.seedData()" class="mt-4 px-6 py-2 bg-primary text-white rounded-xl font-bold text-sm shadow-lg shadow-primary/20 hover:scale-105 transition-transform">
+              Initialize 15 Students Now
+            </button>
+          </td></tr>`;
+        } else {
+          tbody.innerHTML = `<tr><td colspan="6" class="px-6 py-8 text-center text-slate-400 italic">No students found matching your search.</td></tr>`;
+        }
+        return;
+      }
+
+      // Detect duplicates by email
+      const emailCount = {};
+      filtered.forEach(s => { if (s.email) emailCount[s.email] = (emailCount[s.email] || 0) + 1; });
+      const isDuplicate = s => s.email && emailCount[s.email] > 1;
+
+      // Sort duplicates to top
+      const sorted = [...filtered].sort((a, b) => isDuplicate(b) - isDuplicate(a));
+
+      tbody.innerHTML = sorted.map(s => `
+        <tr class="hover:bg-slate-50 transition-colors ${isDuplicate(s) ? 'bg-orange-50/60' : ''}">
+          <td class="px-6 py-4">
+            <div class="flex items-center gap-3">
+              <div class="size-10 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold">
+                ${(s.displayName || "S").split(" ").map(w => w[0]).join("").slice(0, 2)}
+              </div>
+              <div>
+                <p class="text-slate-900 text-sm font-bold flex items-center gap-2">
+                  ${s.displayName || "Unnamed Student"}
+                  ${isDuplicate(s) ? '<span class="text-[10px] font-bold bg-orange-100 text-orange-600 px-2 py-0.5 rounded-full">DUPLICATE</span>' : ''}
+                </p>
+                <p class="text-slate-500 text-xs font-medium">${s.studentId || s.id}</p>
+              </div>
+            </div>
+          </td>
+          <td class="px-6 py-4 text-slate-600 text-sm">${s.email || "—"}</td>
+          <td class="px-6 py-4 text-slate-600 text-sm">${s.faculty || "Engineering"} (${s.year || "1"})</td>
+          <td class="px-6 py-4">
+            <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium ${s.campusStatus === 'inside' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-600'}">
+              <span class="size-1.5 rounded-full ${s.campusStatus === 'inside' ? 'bg-emerald-500' : 'bg-slate-400'}"></span>
+              ${s.campusStatus === 'inside' ? 'Currently Inside' : 'Outside'}
+            </span>
+          </td>
+          <td class="px-6 py-4 text-right">
+            <button onclick="window.viewStudentHistory('${s.id}', '${(s.displayName || 'this student').replace(/'/g, "\\'")}')" 
+              class="p-2 text-slate-400 hover:text-indigo-600 transition-colors" title="View History">
+              <span class="material-symbols-outlined">history</span>
+            </button>
+            <button onclick="openEditModal('${s.id}')" class="p-2 text-slate-400 hover:text-primary transition-colors" title="Edit">
+              <span class="material-symbols-outlined">edit</span>
+            </button>
+            <button onclick="window.deleteStudent('${s.id}', '${(s.displayName || 'this student').replace(/'/g, "\\'")}')"
+              class="p-2 text-slate-400 hover:text-rose-500 transition-colors" title="Delete">
+              <span class="material-symbols-outlined">delete</span>
+            </button>
+          </td>
+        </tr>
+      `).join("");
+    }
+
+    window.deleteStudent = async (docId, name) => {
+      if (!confirm(`Delete "${name}" (ID: ${docId}) from the database?\n\nThis cannot be undone.`)) return;
+      try {
+        await db.collection("students").doc(docId).delete();
+        console.log("[Admin] Deleted student:", docId);
+      } catch (err) {
+        alert("Delete failed: " + err.message);
+      }
+    };
+
+
+    window.seedData = async (isSilent = false) => {
+      if (!db) {
+        if (!isSilent) alert("Database connection not ready.");
+        return;
+      }
+      if (!isSilent && !confirm("Add 15 default students to the database?")) return;
+
+      const students = [
+        { id: "stu001", displayName: "Aiden Perera", email: "aiden.perera@university.edu", studentId: "STU-001", faculty: "Engineering", year: "3", campusStatus: "outside" },
+        { id: "stu002", displayName: "Bianca Fernando", email: "bianca.fernando@university.edu", studentId: "STU-002", faculty: "Medicine", year: "2", campusStatus: "outside" },
+        { id: "stu003", displayName: "Chathura Silva", email: "chathura.silva@university.edu", studentId: "STU-003", faculty: "Business", year: "1", campusStatus: "outside" },
+        { id: "stu004", displayName: "Dilini Jayawardena", email: "dilini.jayawardena@university.edu", studentId: "STU-004", faculty: "Science", year: "4", campusStatus: "outside" },
+        { id: "stu005", displayName: "Eranga Bandara", email: "eranga.bandara@university.edu", studentId: "STU-005", faculty: "Engineering", year: "2", campusStatus: "outside" },
+        { id: "stu006", displayName: "Fiona Rodrigo", email: "fiona.rodrigo@university.edu", studentId: "STU-006", faculty: "Arts", year: "3", campusStatus: "outside" },
+        { id: "stu007", displayName: "Gayan Dissanayake", email: "gayan.dissanayake@university.edu", studentId: "STU-007", faculty: "IT", year: "1", campusStatus: "outside" },
+        { id: "stu008", displayName: "Hiruni Wickrama", email: "hiruni.wickrama@university.edu", studentId: "STU-008", faculty: "Medicine", year: "4", campusStatus: "outside" },
+        { id: "stu009", displayName: "Isuru Madushanka", email: "isuru.madushanka@university.edu", studentId: "STU-009", faculty: "Business", year: "2", campusStatus: "outside" },
+        { id: "stu010", displayName: "Janani Rathnayake", email: "janani.rathnayake@university.edu", studentId: "STU-010", faculty: "Science", year: "3", campusStatus: "outside" },
+        { id: "stu011", displayName: "Kavinda Kumarasinghe", email: "kavinda.kumarasinghe@university.edu", studentId: "STU-011", faculty: "Engineering", year: "1", campusStatus: "outside" },
+        { id: "stu012", displayName: "Lakshmi Dharmasiri", email: "lakshmi.dharmasiri@university.edu", studentId: "STU-012", faculty: "Arts", year: "4", campusStatus: "outside" },
+        { id: "stu013", displayName: "Minura Seneviratne", email: "minura.seneviratne@university.edu", studentId: "STU-013", faculty: "IT", year: "2", campusStatus: "outside" },
+        { id: "stu014", displayName: "Nadeesha Wijesinghe", email: "nadeesha.wijesinghe@university.edu", studentId: "STU-014", faculty: "Medicine", year: "1", campusStatus: "outside" },
+        { id: "stu015", displayName: "Oshadhi Amarasinghe", email: "oshadhi.amarasinghe@university.edu", studentId: "STU-015", faculty: "Science", year: "2", campusStatus: "outside" }
+      ];
+
+      const btn = document.getElementById("sync-btn");
+      if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = `<span class="material-symbols-outlined animate-spin text-[20px]">sync</span> ${isSilent ? 'Auto-Syncing...' : 'Syncing...'}`;
+      }
+
+      try {
+        const batch = db.batch();
+        students.forEach(s => {
+          const { id, ...data } = s;
+          const ref = db.collection("students").doc(id);
+          batch.set(ref, {
+            ...data,
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+          }, { merge: true });
+        });
+
+        await batch.commit();
+        if (!isSilent) alert("Success: 15 students have been synced to your live database.");
+      } catch (err) {
+        console.error("Seed error:", err);
+        if (!isSilent) alert("Syncing failed: " + err.message);
+      } finally {
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = `<span class="material-symbols-outlined text-[20px]">refresh</span> Sync`;
+        }
+      }
+    };
+
+    window.openEditModal = (uid) => {
+      const student = allStudents.find(s => s.id === uid);
+      if (!student) return;
+      document.getElementById("edit-uid").value = uid;
+      document.getElementById("edit-name").value = student.displayName || "";
+      document.getElementById("edit-email").value = student.email || "";
+      document.getElementById("edit-reg").value = student.regNumber || "";
+      document.getElementById("edit-faculty").value = student.faculty || "";
+
+      const modal = document.getElementById("edit-user-modal");
+      modal.classList.remove("opacity-0", "pointer-events-none");
+      modal.firstElementChild.classList.remove("scale-95");
+      modal.firstElementChild.classList.add("scale-100");
+    };
+
+    window.closeEditModal = () => {
+      const modal = document.getElementById("edit-user-modal");
+      modal.classList.add("opacity-0", "pointer-events-none");
+      modal.firstElementChild.classList.remove("scale-100");
+      modal.firstElementChild.classList.add("scale-95");
+    };
+
+    document.getElementById("edit-user-form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const uid = document.getElementById("edit-uid").value;
+      const upData = {
+        displayName: document.getElementById("edit-name").value,
+        email: document.getElementById("edit-email").value,
+        regNumber: document.getElementById("edit-reg").value,
+        faculty: document.getElementById("edit-faculty").value,
+      };
+      try {
+        await db.collection("students").doc(uid).update(upData);
+        closeEditModal();
+      } catch (err) {
+        alert("Failed to save student data: " + err.message);
+      }
+    });
+
+    document.getElementById("user-search").addEventListener("input", () => renderUsers(allStudents));
+
+    // ── Init (Wait for Firestore) ──────────────────────────────────────
+    // renderStats(DUMMY_STATS); // Removed
+    // renderFeed(DUMMY_LOGS);   // Removed
+
+    document.getElementById("chart-range").addEventListener("change", e => {
+      // Logic for real data traffic range would go here
+    });
+
+    // ── FIREBASE INITIALIZATION ──
+    try {
+      firebase.initializeApp({
+        apiKey: "AIzaSyBiNC6RwXqTachVrdOtxInzme10Pk281DU",
+        authDomain: "student-login-data-base.firebaseapp.com",
+        projectId: "student-login-data-base",
+        storageBucket: "student-login-data-base.firebasestorage.app",
+        messagingSenderId: "480696491383",
+        appId: "1:480696491383:web:8158fedf914d35d8f3d572",
+      });
+
+      db = firebase.firestore();
+      auth = firebase.auth();
+
+      // Silent Anonymous login to ensure writes have permission on the server
+      auth.onAuthStateChanged(user => {
+        if (!user) {
+          auth.signInAnonymously().catch(err => console.error("Anon Auth Failed:", err));
+        } else {
+          console.log("Session Active:", user.isAnonymous ? "Anonymous" : user.email);
+        }
+      });
+
+      // ── Live Data Listeners (Direct Sync) ──
+      const tbody = document.getElementById("users-table-body");
+      if (tbody) {
+        tbody.innerHTML = `<tr><td colspan="5" class="px-6 py-12 text-center text-slate-500 font-medium">
+          <span class="material-symbols-outlined block mb-3 text-4xl text-slate-300 animate-pulse">sync</span>
+          Connecting to Live Database...
+        </td></tr>`;
+      }
+
+      // Logs Listener
+      db.collection("accessLogs").orderBy("timestamp", "desc").limit(30).onSnapshot(snap => {
+        currentLogs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        renderAll();
+      }, err => {
+        console.error("Logs Error:", err);
+        const logsBody = document.getElementById("logs-table-body");
+        const mainLogsBody = document.getElementById("main-logs-table-body");
+        const errMsg = `<tr><td colspan="5" class="px-6 py-8 text-center text-rose-500 font-medium"><span class="material-symbols-outlined block mb-2 text-3xl">cloud_off</span>Could not load logs: ${err.message}<br><span class="text-xs text-slate-400 mt-1 block">Check Firestore rules or create the required composite index.</span></td></tr>`;
+        if (logsBody) logsBody.innerHTML = errMsg;
+        if (mainLogsBody) mainLogsBody.innerHTML = errMsg;
+      });
+
+      // Students Listener
+      let hasAttemptedAutoSeed = false;
+      db.collection("students").onSnapshot(snap => {
+        if (snap.empty && !hasAttemptedAutoSeed) {
+          hasAttemptedAutoSeed = true;
+          console.log("Database empty. Triggering silent auto-seed...");
+          window.seedData(true);
+          return;
+        }
+        allStudents = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        renderAll();
+      }, err => {
+        console.error("Students Error:", err);
+        if (tbody) {
+          tbody.innerHTML = `<tr><td colspan="5" class="px-6 py-12 text-center text-rose-500 font-medium bg-rose-50/50">
+            <span class="material-symbols-outlined block mb-3 text-4xl">warning</span>
+            <b>Connection Issue</b><br>
+            <p class="text-sm mt-2">${err.message}</p>
+          </td></tr>`;
+        }
+      });
+
+    } catch (e) {
+      console.error("Firebase Init Error:", e);
+      alert("Firebase failed to load. Please check your internet connection.");
+    }
+
+    function processTraffic(logs) {
+      const entriesData = new Array(12).fill(0);
+      const exitsData = new Array(12).fill(0);
+      const now = new Date();
+      logs.forEach(log => {
+        const ts = log.timestamp;
+        const date = (ts && ts.toDate) ? ts.toDate() : (ts ? new Date(ts) : null);
+        if (!date) return;
+        if (date.toDateString() === now.toDateString()) {
+          const hour = date.getHours();
+          if (hour >= 7 && hour <= 18) {
+            const idx = Math.min(Math.max(0, hour - 7), 11);
+            if (log.type === "entry") entriesData[idx]++;
+            else if (log.type === "exit") exitsData[idx]++;
+          }
+        }
+      });
+      return { entries: entriesData, exits: exitsData };
+    }
+
+    // ── QR Scanner Logic ──────────────────────────────────────────────────
+    let html5QrCode;
+    const scanOverlay = document.getElementById("scan-result-overlay");
+    const scanTitle = document.getElementById("scan-result-title");
+    const scanMsg = document.getElementById("scan-result-msg");
+    const scanIcon = document.getElementById("scan-result-icon");
+
+    // Prevent rapid double-scanning of the same ID (the loop issue)
+    const processingLock = new Set();
+
+    async function processStudentUID(uid) {
+      if (!uid || uid.length < 5) return;
+
+      const lookupUid = uid.trim();
+      if (processingLock.has(lookupUid)) {
+        showScanResult("Please Wait", "This ID was just scanned — cooldown active", true);
+        return;
+      }
+      processingLock.add(lookupUid);
+      setTimeout(() => processingLock.delete(lookupUid), 5000);
+
+      console.log("[Scanner] Processing UID:", lookupUid);
+      const targetGate = document.getElementById("scanner-gate").value;
+      let studentDocId = lookupUid;
+      let studentData = null;
+
+      // Build a human-readable fallback name from whatever was scanned
+      // If it's an email, use the part before @ (e.g. minura.seneviratne)
+      // Convert dots/underscores to spaces and title-case it
+      const isEmail = lookupUid.includes("@");
+      const rawName = isEmail
+        ? lookupUid.split("@")[0].replace(/[._]/g, " ").replace(/\b\w/g, c => c.toUpperCase())
+        : lookupUid.substring(0, 12) + "...";
+      let resolvedName = rawName;
+      const lookupEmail = isEmail ? lookupUid.toLowerCase() : null;
+      let isEntry = true;
+
+      try {
+        if (db) {
+          let studentSnap = null;
+
+          if (isEmail) {
+            // Primary: look up directly by email field (QR now always encodes email)
+            console.log("[Scanner] Email QR detected. Looking up:", lookupEmail);
+            const emailQuery = await db.collection("students").where("email", "==", lookupEmail).get().catch(() => null);
+            if (emailQuery && !emailQuery.empty) {
+              // Priority: If multiple docs exist, pick the one already linked to Auth (has 'uid')
+              studentSnap = emailQuery.docs.find(d => d.data().uid) || emailQuery.docs[0];
+              studentDocId = studentSnap.id;
+              console.log("[Scanner] Found by email:", studentDocId, studentSnap.data().uid ? "(Linked Account)" : "(Seed Account)");
+            }
+          } else {
+            // Legacy: Auth UID encoded in QR
+            studentSnap = await db.collection("students").doc(lookupUid).get().catch(() => null);
+            if (!studentSnap || !studentSnap.exists) {
+              // Try uid field
+              const uidQuery = await db.collection("students").where("uid", "==", lookupUid).limit(1).get().catch(() => null);
+              if (uidQuery && !uidQuery.empty) {
+                studentSnap = uidQuery.docs[0];
+                studentDocId = studentSnap.id;
+              }
+            }
+          }
+
+          if (studentSnap && studentSnap.exists) {
+            studentData = studentSnap.data();
+            resolvedName = studentData.displayName || studentData.email?.split("@")[0] || resolvedName;
+
+            // Auto-Link: Store the Firebase Auth UID on the student doc so future lookups work
+            // This runs even for short UIDs (e.g. stu013) but only if no uid field yet
+            if (!studentData.uid) {
+              await db.collection("students").doc(studentDocId).update({ uid: lookupUid }).catch(() => null);
+              console.log("[Scanner] Auto-linked Auth UID to student doc:", studentDocId);
+            }
+
+            const currentStatus = studentData.campusStatus || "outside";
+            isEntry = currentStatus !== "inside";
+            console.log("[Scanner] Resolved Student:", resolvedName, "| New Status:", isEntry ? "inside" : "outside");
+          } else {
+            console.warn("[Scanner] Student not found in DB. Event will be logged as Bypass.");
+          }
+
+          // Force log to accessLogs (AWAITED for server persistence)
+          const logPayload = {
+            uid: studentData?.uid || lookupUid, // Use the actual Auth UID for portal history matching
+            docId: studentDocId,
+            studentName: resolvedName,
+            gate: targetGate,
+            type: studentData ? (isEntry ? "entry" : "exit") : "bypass",
+            timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+            result: studentData ? "success" : "bypassed"
+          };
+
+          try {
+            await db.collection("accessLogs").add(logPayload);
+            console.log("[Scanner] Log entry committed to server.");
+
+            // Also push to local cache immediately so it survives refresh
+            const localEntry = {
+              ...logPayload,
+              id: "local_" + Date.now(),
+              timestamp: { toDate: () => new Date(), seconds: Date.now() / 1000 },
+              _ts: Date.now()
+            };
+            const cachedNow = [localEntry, ...currentLogs].slice(0, 50);
+            saveLogsToCache(cachedNow);
+          } catch (dbErr) {
+            console.error("[Scanner] Firestore Save Failed:", dbErr);
+            // Show non-blocking error in overlay instead of blocking alert()
+            showScanResult("⚠ Save Failed", "Check Firestore rules: " + dbErr.code, false);
+
+            // Still cache locally so the entry appears in admin
+            const localFallback = {
+              ...logPayload,
+              id: "local_" + Date.now(),
+              timestamp: { toDate: () => new Date(), seconds: Date.now() / 1000 },
+              _ts: Date.now()
+            };
+            currentLogs = [localFallback, ...currentLogs].slice(0, 50);
+            saveLogsToCache(currentLogs);
+            renderAll();
+            return;
+          }
+
+          if (studentData) {
+            try {
+              const updateData = {
+                campusStatus: isEntry ? "inside" : "outside",
+                lastGate: targetGate
+              };
+              if (isEntry) updateData.lastEntryTime = firebase.firestore.FieldValue.serverTimestamp();
+              else updateData.lastExitTime = firebase.firestore.FieldValue.serverTimestamp();
+
+              await db.collection("students").doc(studentDocId).update(updateData);
+              console.log("[Scanner] Student status updated on server.");
+            } catch (upErr) {
+              console.warn("[Scanner] Status update failed:", upErr);
+              // We'll continue since the log was saved
+            }
+          }
+
+          showScanResult(
+            studentData ? (isEntry ? "Welcome Inside" : "Safe Travels") : "Access Granted (Bypassed)",
+            `${resolvedName} - ${targetGate}`,
+            true
+          );
+        } else {
+          showScanResult("Access Granted", `Offline: ${resolvedName}`, true);
+        }
+      } catch (err) {
+        console.error("[Scanner] Critical Error:", err);
+        showScanResult("Access Granted", "Verification Bypassed", true);
+
+        if (db) {
+          const fallbackLog = {
+            uid: lookupUid,
+            studentName: resolvedName,
+            gate: targetGate,
+            type: "bypass",
+            timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+            result: "critical_bypass",
+            error: err.message
+          };
+          await db.collection("accessLogs").add(fallbackLog).catch(e => console.error("[Scanner] Emergency log failed:", e));
+        }
+      }
+    }
+
+    function showScanResult(title, msg, success) {
+      if (!scanOverlay) return;
+      scanOverlay.classList.remove("bg-emerald-500/90", "bg-rose-500/90");
+      scanOverlay.classList.add(success ? "bg-emerald-500/90" : "bg-rose-500/90");
+      scanIcon.textContent = success ? "check_circle" : "error";
+      scanTitle.textContent = title;
+      scanMsg.textContent = msg;
+
+      scanOverlay.classList.remove("opacity-0", "pointer-events-none", "scale-110");
+      scanOverlay.classList.add("opacity-100", "scale-100");
+
+      setTimeout(() => {
+        scanOverlay.classList.add("opacity-0", "pointer-events-none", "scale-110");
+        scanOverlay.classList.remove("opacity-100", "scale-100");
+      }, 3000);
+    }
+
+    window.startScanner = () => {
+      const btnStart = document.getElementById("btn-start-scanner");
+      const btnStop = document.getElementById("btn-stop-scanner");
+
+      if (!html5QrCode) html5QrCode = new Html5Qrcode("reader");
+
+      const config = { fps: 10, qrbox: { width: 250, height: 250 } };
+
+      html5QrCode.start({ facingMode: "environment" }, config, (decodedText) => {
+        processStudentUID(decodedText);
+      }).then(() => {
+        btnStart.disabled = true;
+        btnStart.classList.add("opacity-50", "cursor-not-allowed");
+        btnStop.disabled = false;
+        btnStop.classList.remove("opacity-50", "cursor-not-allowed");
+      }).catch(err => {
+        console.error("Camera access failed", err);
+        alert("Camera initialization failed. Please ensure permissions are granted.");
+      });
+    };
+
+    window.stopScanner = () => {
+      const btnStart = document.getElementById("btn-start-scanner");
+      const btnStop = document.getElementById("btn-stop-scanner");
+
+      if (html5QrCode) {
+        html5QrCode.stop().then(() => {
+          btnStart.disabled = false;
+          btnStart.classList.remove("opacity-50", "cursor-not-allowed");
+          btnStop.disabled = true;
+          btnStop.classList.add("opacity-50", "cursor-not-allowed");
+        });
+      }
+    };
+
+    document.getElementById("btn-start-scanner").addEventListener("click", startScanner);
+    document.getElementById("btn-stop-scanner").addEventListener("click", stopScanner);
+    document.getElementById("btn-manual-verify").addEventListener("click", () => {
+      const uid = document.getElementById("manual-uid").value;
+      if (uid) processStudentUID(uid);
+    });
+  </script>
+
+
+  <!-- SPA Logic -->
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const tabs = document.querySelectorAll('.nav-tab');
+      const panes = document.querySelectorAll('.tab-pane');
+
+      const switchTab = (targetId) => {
+        // Update nav styling
+        tabs.forEach(t => {
+          if (t.dataset.target === targetId) {
+            t.classList.add('text-primary', 'font-bold', 'border-primary');
+            t.classList.remove('text-slate-500', 'font-medium', 'border-transparent');
+          } else {
+            t.classList.remove('text-primary', 'font-bold', 'border-primary');
+            t.classList.add('text-slate-500', 'font-medium', 'border-transparent');
+          }
+        });
+
+        // Update panes
+        panes.forEach(p => {
+          if (p.id === targetId) {
+            p.classList.remove('hidden');
+            p.classList.add('active-tab');
+          } else {
+            p.classList.add('hidden');
+            p.classList.remove('active-tab');
+          }
+        });
+
+        // Push state manually but we are on file:// typically, maybe just hash?
+        window.location.hash = targetId.replace('-tab', '');
+      };
+
+      tabs.forEach(btn => {
+        btn.addEventListener('click', () => {
+          switchTab(btn.dataset.target);
+        });
+      });
+
+      // Intercept typical links
+      document.body.addEventListener('click', (e) => {
+        let anchor = e.target.closest('a');
+        if (!anchor) return;
+        let href = anchor.getAttribute('href');
+        let targetMapping = {
+          'admin_dashboard.html': 'overview-tab',
+          'gate setting code.html': 'zones-tab',
+          'system logs code.html': 'logs-tab',
+          'system settings code.html': 'system-tab',
+          '#': null
+        };
+        // Normalize
+        let t = href ? href.trim().replace(/%20/g, " ") : null;
+        if (t && targetMapping[t]) {
+          e.preventDefault();
+          switchTab(targetMapping[t]);
+          window.scrollTo(0, 0);
+        }
+      });
+
+      // Route from Hash on Load
+      let h = window.location.hash.substring(1);
+      if (h && document.getElementById(h + '-tab')) {
+        switchTab(h + '-tab');
+      }
+
+      // ── System Sidebar Logic ──
+      const systemNavItems = document.querySelectorAll('.system-nav-item');
+      const systemSections = document.querySelectorAll('.system-section');
+
+      systemNavItems.forEach(item => {
+        item.addEventListener('click', () => {
+          const targetSection = item.dataset.section;
+
+          // Update Nav Styling
+          systemNavItems.forEach(i => {
+            i.classList.remove('bg-primary/10', 'text-primary');
+            i.classList.add('text-slate-600', 'dark:text-slate-400', 'hover:bg-slate-100', 'dark:hover:bg-slate-800');
+            i.querySelector('p').classList.remove('font-semibold');
+            i.querySelector('p').classList.add('font-medium');
+          });
+          item.classList.add('bg-primary/10', 'text-primary');
+          item.classList.remove('text-slate-600', 'dark:text-slate-400', 'hover:bg-slate-100', 'dark:hover:bg-slate-800');
+          item.querySelector('p').classList.add('font-semibold');
+          item.querySelector('p').classList.remove('font-medium');
+
+          // Update Visible Section
+          systemSections.forEach(section => {
+            if (section.id === targetSection) {
+              section.classList.remove('hidden');
+            } else {
+              section.classList.add('hidden');
+            }
+          });
+        });
+      });
+    });
+
+    // ── Admin Login Logic ──
+    (function () {
+      const ADMIN_USER = 'admin';
+      const ADMIN_PASS = 'admin1234';
+      const SESSION_KEY = 'adminLoggedIn';
+
+      const overlay = document.getElementById('login-overlay');
+
+      // If already logged in this session, skip the overlay
+      if (sessionStorage.getItem(SESSION_KEY) === 'true') {
+        overlay.style.display = 'none';
+      }
+
+      window.handleAdminLogin = function (e) {
+        e.preventDefault();
+        const user = document.getElementById('login-username').value.trim();
+        const pass = document.getElementById('login-password').value;
+        const errEl = document.getElementById('login-error');
+
+        if (user === ADMIN_USER && pass === ADMIN_PASS) {
+          sessionStorage.setItem(SESSION_KEY, 'true');
+          errEl.classList.remove('visible');
+          overlay.classList.add('fade-out');
+          // Remove from DOM after transition
+          overlay.addEventListener('transitionend', () => overlay.remove(), { once: true });
+        } else {
+          errEl.classList.add('visible');
+          // Shake the card
+          const card = overlay.querySelector('.login-card');
+          card.style.animation = 'none';
+          card.offsetHeight; // reflow
+          card.style.animation = 'shake 0.4s ease';
+        }
+      };
+
+      // Inject shake keyframe once
+      if (!document.getElementById('shake-style')) {
+        const s = document.createElement('style');
+        s.id = 'shake-style';
+        s.textContent = '@keyframes shake{0%,100%{transform:translateX(0)}20%,60%{transform:translateX(-8px)}40%,80%{transform:translateX(8px)}}';
+        document.head.appendChild(s);
+      }
+    })();
+  </script>
+</body>
+
+</html>

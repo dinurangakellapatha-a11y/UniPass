@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <title>Seed Firestore Data</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: Arial, sans-serif;
+      background: #131022;
+      color: white;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+      padding: 30px 20px;
+    }
+
+    h2 {
+      color: #818cf8;
+      margin-bottom: 4px;
+    }
+
+    p {
+      color: #9ca3af;
+      font-size: 13px;
+      margin-bottom: 16px;
+      text-align: center;
+    }
+
+    button {
+      background: #3211d4;
+      color: white;
+      border: none;
+      padding: 12px 20px;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: bold;
+      cursor: pointer;
+      margin: 5px;
+      transition: opacity .2s, transform .1s;
+    }
+
+    button:hover:not(:disabled) {
+      opacity: .9;
+      transform: translateY(-1px);
+    }
+
+    button:disabled {
+      opacity: 0.35;
+      cursor: not-allowed;
+    }
+
+    .btn-row {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      justify-content: center;
+      max-width: 640px;
+      margin-bottom: 8px;
+    }
+
+    #status-bar {
+      background: #312a5a;
+      border-radius: 8px;
+      padding: 10px 16px;
+      font-size: 13px;
+      color: #a5b4fc;
+      margin: 8px 0;
+      width: 100%;
+      max-width: 640px;
+      text-align: center;
+      min-height: 36px;
+    }
+
+    #log {
+      background: #1a163a;
+      padding: 16px;
+      border-radius: 12px;
+      width: 100%;
+      max-width: 640px;
+      font-size: 12px;
+      line-height: 1.9;
+      white-space: pre-wrap;
+      max-height: 500px;
+      overflow-y: auto;
+      font-family: monospace;
+    }
+
+    .ok {
+      color: #4ade80;
+    }
+
+    .err {
+      color: #f87171;
+    }
+
+    .info {
+      color: #93c5fd;
+    }
+
+    .step {
+      color: #fcd34d;
+      font-weight: bold;
+      font-size: 13px;
+    }
+
+    .done {
+      color: #34d399;
+      font-weight: bold;
+      font-size: 14px;
+    }
+
+    input {
+      background: #312a5a;
+      border: 1px solid #594c9a;
+      color: white;
+      padding: 10px 14px;
+      border-radius: 8px;
+      font-size: 14px;
+      width: 100%;
+      max-width: 640px;
+      margin-bottom: 8px;
+    }
+
+    label {
+      font-size: 12px;
+      color: #9ca3af;
+      margin-bottom: 3px;
+      display: block;
+      text-align: left;
+      width: 100%;
+      max-width: 640px;
+    }
+  </style>
+</head>
+
+<body>
+  <h2>🔥 Firestore Data Seeder</h2>
+  <p>Login first, then click <strong>🚀 Seed Everything</strong> to populate the database with dummy data.</p>
+
+  <label>Admin Email</label>
+  <input id="email" type="email" value="student@university.edu">
+  <label>Password</label>
+  <input id="password" type="password" value="password123">
+
+  <div class="btn-row">
+    <button id="btn-admin-create" style="background:#059669">🛡️ Create Admin Account</button>
+    <button id="btn-login">🔐 Login (for seeding)</button>
+    <button id="btn-auth" disabled style="background:#7c3aed">🔑 Create Student Auth Accounts</button>
+    <button id="btn-students" disabled>👥 Seed Students</button>
+    <button id="btn-logs" disabled>📋 Seed Access Logs</button>
+    <button id="btn-stats" disabled>📊 Seed Campus Stats</button>
+    <button id="btn-all" disabled>🚀 Seed Everything</button>
+  </div>
+  <div
+    style="background:#064e3b;border:1px solid #059669;border-radius:8px;padding:10px 16px;font-size:13px;color:#6ee7b7;max-width:640px;width:100%;margin-bottom:8px;text-align:center">
+    👆 Step 1: Click <strong>Create Admin Account</strong> above — then go back and log in with Staff ID:
+    <strong>admin</strong> &nbsp;|&nbsp; PIN: <strong>admin1234</strong>
+  </div>
+
+  <div id="status-bar">👆 Click "Create Admin Account" first — no login needed!</div>
+  <div id="log" class="info">Ready.</div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
+    import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
+    import { getFirestore, doc, collection, setDoc, addDoc, serverTimestamp, Timestamp }
+      from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
+
+    const CFG = {
+      apiKey: "AIzaSyBiNC6RwXqTachVrdOtxInzme10Pk281DU",
+      authDomain: "student-login-data-base.firebaseapp.com",
+      projectId: "student-login-data-base",
+      storageBucket: "student-login-data-base.firebasestorage.app",
+      messagingSenderId: "480696491383",
+      appId: "1:480696491383:web:8158fedf914d35d8f3d572",
+    };
+
+    const app = initializeApp(CFG);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    const logEl = document.getElementById("log");
+    const statusEl = document.getElementById("status-bar");
+
+    function log(msg, cls = "info") {
+      logEl.innerHTML += `<span class="${cls}">${msg}</span>\n`;
+      logEl.scrollTop = logEl.scrollHeight;
+    }
+    function status(msg) { statusEl.textContent = msg; }
+    function ts(hoursAgo) {
+      return Timestamp.fromDate(new Date(Date.now() - hoursAgo * 3_600_000));
+    }
+
+    let adminEmail = "";
+    let adminPassword = "";
+
+    const ADMIN_EMAIL = "admin@admin.com";
+    const ADMIN_PASSWORD = "admin1234";
+
+    // ─── Create Admin Auth account ────────────────────────────────────────────
+    async function seedAdminAccount() {
+      status("⏳ Creating admin account...");
+      log("\n══ ADMIN ACCOUNT SETUP ═══════════════════", "step");
+      log(`   Email: ${ADMIN_EMAIL}`, "info");
+      log(`   Password: ${ADMIN_PASSWORD}`, "info");
+      log(`   → Login page Staff ID: admin  |  PIN: admin1234`, "info");
+      try {
+        await createUserWithEmailAndPassword(auth, ADMIN_EMAIL, ADMIN_PASSWORD);
+        log("  ✅ Admin account created successfully!", "ok");
+        log("  You can now log in at security_&_admin_login.html", "ok");
+        // Re-sign in as the seeder admin so we don't lose our session
+        await signInWithEmailAndPassword(auth, adminEmail, adminPassword);
+      } catch (e) {
+        if (e.code === "auth/email-already-in-use") {
+          log("  ⏭️  Admin account already exists — ready to use!", "info");
+          log("  Staff ID: admin  |  PIN: admin1234", "info");
+        } else {
+          log(`  ❌ FAILED: ${e.code} — ${e.message}`, "err");
+        }
+      }
+    }
+
+    // ─── Student data ─────────────────────────────────────────────────────────
+    const STUDENTS = [
+      { id: "stu001", name: "Aiden Perera", email: "aiden.perera@university.edu", faculty: "Faculty of Engineering", reg: "REG-2023-0101", year: 3, status: "inside", gate: "Main Gate East", entryH: 1, exitH: 25 },
+      { id: "stu002", name: "Bianca Fernando", email: "bianca.fernando@university.edu", faculty: "Faculty of Science", reg: "REG-2022-0215", year: 2, status: "inside", gate: "North Gate", entryH: 2, exitH: 26 },
+      { id: "stu003", name: "Chathura Silva", email: "chathura.silva@university.edu", faculty: "Faculty of Medicine", reg: "REG-2021-0330", year: 4, status: "outside", gate: "South Gate B", entryH: 10, exitH: 3 },
+      { id: "stu004", name: "Dilini Jayawardena", email: "dilini.jayawardena@university.edu", faculty: "Faculty of Arts", reg: "REG-2024-0048", year: 1, status: "inside", gate: "Library West Entry", entryH: 0.5, exitH: 24 },
+      { id: "stu005", name: "Eranga Bandara", email: "eranga.bandara@university.edu", faculty: "Faculty of Engineering", reg: "REG-2023-0189", year: 3, status: "inside", gate: "Engineering Block B", entryH: 3, exitH: 27 },
+      { id: "stu006", name: "Fiona Rodrigo", email: "fiona.rodrigo@university.edu", faculty: "Faculty of Business", reg: "REG-2022-0402", year: 2, status: "outside", gate: "Main Gate East", entryH: 8, exitH: 2 },
+      { id: "stu007", name: "Gayan Dissanayake", email: "gayan.dissanayake@university.edu", faculty: "Faculty of Science", reg: "REG-2023-0310", year: 1, status: "inside", gate: "East Student Dorm", entryH: 4, exitH: 28 },
+      { id: "stu008", name: "Hiruni Wickrama", email: "hiruni.wickrama@university.edu", faculty: "Faculty of Medicine", reg: "REG-2021-0512", year: 4, status: "inside", gate: "North Gate", entryH: 1, exitH: 25 },
+      { id: "stu009", name: "Isuru Madushanka", email: "isuru.madushanka@university.edu", faculty: "Faculty of Engineering", reg: "REG-2024-0073", year: 1, status: "outside", gate: "South Gate B", entryH: 12, exitH: 1 },
+      { id: "stu010", name: "Janani Rathnayake", email: "janani.rathnayake@university.edu", faculty: "Faculty of Arts", reg: "REG-2022-0639", year: 2, status: "inside", gate: "Library West Entry", entryH: 2.5, exitH: 26 },
+      { id: "stu011", name: "Kavinda Kumarasinghe", email: "kavinda.kumarasinghe@university.edu", faculty: "Faculty of Business", reg: "REG-2023-0554", year: 3, status: "inside", gate: "Main Gate East", entryH: 0.8, exitH: 24 },
+      { id: "stu012", name: "Lakshmi Dharmasiri", email: "lakshmi.dharmasiri@university.edu", faculty: "Faculty of Science", reg: "REG-2024-0112", year: 1, status: "outside", gate: "Engineering Block B", entryH: 9, exitH: 1.5 },
+      { id: "stu013", name: "Minura Seneviratne", email: "minura.seneviratne@university.edu", faculty: "Faculty of Engineering", reg: "REG-2021-0745", year: 4, status: "inside", gate: "East Student Dorm", entryH: 1.5, exitH: 25 },
+      { id: "stu014", name: "Nadeesha Wijesinghe", email: "nadeesha.wijesinghe@university.edu", faculty: "Faculty of Medicine", reg: "REG-2022-0881", year: 2, status: "inside", gate: "North Gate", entryH: 3.5, exitH: 27 },
+      { id: "stu015", name: "Oshadhi Amarasinghe", email: "oshadhi.amarasinghe@university.edu", faculty: "Faculty of Arts", reg: "REG-2023-0967", year: 3, status: "outside", gate: "South Gate B", entryH: 11, exitH: 2 },
+    ];
+
+    const GATES = ["Main Gate East", "North Gate", "South Gate B", "Library West Entry", "Engineering Block B", "East Student Dorm"];
+
+    const STUDENT_PASSWORD = "student123";
+
+    // ─── Create Firebase Auth accounts ────────────────────────────────────────
+    async function seedAuthAccounts() {
+      status("⏳ Creating auth accounts...");
+      log("\n══ STEP 1: Auth Accounts ═════════════════", "step");
+      log("   Password for all students: student123", "info");
+      let ok = 0, skip = 0, fail = 0;
+      for (const s of STUDENTS) {
+        try {
+          await createUserWithEmailAndPassword(auth, s.email, STUDENT_PASSWORD);
+          log(`  ✅ Created: ${s.email}`, "ok");
+          ok++;
+          // Re-sign in as admin so we don't lose our session
+          await signInWithEmailAndPassword(auth, adminEmail, adminPassword);
+        } catch (e) {
+          if (e.code === "auth/email-already-in-use") {
+            log(`  ⏭️  Exists: ${s.email}`, "info");
+            skip++;
+          } else {
+            log(`  ❌ FAILED ${s.email}: ${e.code} — ${e.message}`, "err");
+            fail++;
+          }
+        }
+      }
+      log(`→ Auth: ${ok} created, ${skip} already existed, ${fail} failed.`, ok + skip > 0 ? "ok" : "err");
+    }
+
+    // ─── Seed students (one-at-a-time, visible errors per doc) ───────────────
+    async function seedStudents() {
+      status("⏳ Seeding student docs (2/4)...");
+      log("\n══ STEP 2: Student Documents ═════════════", "step");
+      let ok = 0, fail = 0;
+      for (const s of STUDENTS) {
+        try {
+          await setDoc(doc(db, "students", s.id), {
+            displayName: s.name,
+            email: s.email,
+            faculty: s.faculty,
+            regNumber: s.reg,
+            year: s.year,
+            studentId: "STD-" + s.id.slice(-3).toUpperCase() + Math.floor(Math.random() * 900 + 100),
+            campusStatus: s.status,
+            lastGate: s.gate,
+            lastEntryTime: ts(s.entryH),
+            lastExitTime: ts(s.exitH),
+            createdAt: serverTimestamp(),
+          });
+          log(`  ✅ ${s.name} (${s.faculty})`, "ok");
+          ok++;
+        } catch (e) {
+          log(`  ❌ FAILED ${s.name}: ${e.code} — ${e.message}`, "err");
+          fail++;
+        }
+      }
+      log(`→ Students: ${ok} written, ${fail} failed.`, ok > 0 ? "ok" : "err");
+    }
+
+    // ─── Seed access logs ─────────────────────────────────────────────────────
+    async function seedLogs() {
+      status("⏳ Seeding access logs (3/4)...");
+      log("\n══ STEP 3: Access Logs ═══════════════════", "step");
+
+      const logsRef = collection(db, "accessLogs");
+      const entries = [];
+
+      // 4 entry/exit pairs per student over 3 days
+      for (const s of STUDENTS) {
+        for (const base of [1, 25, 49, 73]) {
+          entries.push({ studentId: s.id, studentName: s.name, gate: s.gate, type: "entry", hoursAgo: base + Math.random() * 0.5 });
+          entries.push({ studentId: s.id, studentName: s.name, gate: GATES[Math.floor(Math.random() * GATES.length)], type: "exit", hoursAgo: base - 4 - Math.random() * 0.5 });
+        }
+      }
+      // Denied attempts for security alerts
+      for (let i = 0; i < 6; i++) {
+        entries.push({ studentId: "UNKNOWN", studentName: "Unknown Visitor", gate: "Gate D (Restricted)", type: "denied", hoursAgo: i * 0.4 + 0.1 });
+      }
+
+      let ok = 0, fail = 0;
+      for (const e of entries) {
+        if (e.hoursAgo < 0) continue;
+        try {
+          await addDoc(logsRef, {
+            studentId: e.studentId,
+            studentName: e.studentName,
+            gate: e.gate,
+            type: e.type,
+            timestamp: ts(e.hoursAgo),
+          });
+          ok++;
+          if (ok % 10 === 0) log(`  ✅ ${ok} log entries written...`, "ok");
+        } catch (e2) {
+          log(`  ❌ FAILED log entry: ${e2.code} — ${e2.message}`, "err");
+          fail++;
+        }
+      }
+      log(`→ Logs: ${ok} written, ${fail} failed.`, ok > 0 ? "ok" : "err");
+    }
+
+    // ─── Seed campus stats ────────────────────────────────────────────────────
+    async function seedStats() {
+      status("⏳ Seeding campus stats (3/3)...");
+      log("\n══ STEP 3: Campus Stats ══════════════════", "step");
+      try {
+        await setDoc(doc(db, "campusStats", "current"), {
+          activeStudents: 2845,
+          occupancyPercent: 82,
+          securityAlerts: 3,
+          lastUpdated: serverTimestamp(),
+        });
+        log("  ✅ campusStats/current written!", "ok");
+        log("     activeStudents: 2845 | occupancy: 82% | alerts: 3", "ok");
+      } catch (e) {
+        log(`  ❌ FAILED campusStats: ${e.code} — ${e.message}`, "err");
+        log("  ⚠️  Check Firestore rules — you may need to allow writes.", "err");
+      }
+    }
+
+    // ─── Login ────────────────────────────────────────────────────────────────
+    document.getElementById("btn-login").addEventListener("click", async () => {
+      logEl.innerHTML = "";
+      status("🔐 Logging in...");
+      const email = document.getElementById("email").value.trim();
+      const pass = document.getElementById("password").value;
+      try {
+        const cred = await signInWithEmailAndPassword(auth, email, pass);
+        log(`✅ Logged in: ${cred.user.email}  (uid: ${cred.user.uid})`, "ok");
+        status(`✅ Logged in as ${cred.user.email}`);
+        adminEmail = email;
+        adminPassword = pass;
+        ["btn-admin-create", "btn-auth", "btn-students", "btn-logs", "btn-stats", "btn-all"].forEach(id => {
+          document.getElementById(id).disabled = false;
+        });
+      } catch (e) {
+        log(`❌ Login failed: ${e.code}\n   ${e.message}`, "err");
+        status("❌ Login failed — check credentials.");
+      }
+    });
+
+    // ─── Individual seeds ─────────────────────────────────────────────────────
+    document.getElementById("btn-admin-create").addEventListener("click", async () => {
+      try { await seedAdminAccount(); status("✅ Admin account ready!"); }
+      catch (e) { log(`❌ Unexpected: ${e.message}`, "err"); status("❌ Error."); }
+    });
+
+    document.getElementById("btn-auth").addEventListener("click", async () => {
+      try { await seedAuthAccounts(); status("✅ Auth accounts done!"); }
+      catch (e) { log(`❌ Unexpected: ${e.message}`, "err"); status("❌ Error."); }
+    });
+    document.getElementById("btn-students").addEventListener("click", async () => {
+      try { await seedStudents(); status("✅ Students done!"); }
+      catch (e) { log(`❌ Unexpected: ${e.message}`, "err"); status("❌ Error."); }
+    });
+    document.getElementById("btn-logs").addEventListener("click", async () => {
+      try { await seedLogs(); status("✅ Logs done!"); }
+      catch (e) { log(`❌ Unexpected: ${e.message}`, "err"); status("❌ Error."); }
+    });
+    document.getElementById("btn-stats").addEventListener("click", async () => {
+      try { await seedStats(); status("✅ Stats done!"); }
+      catch (e) { log(`❌ Unexpected: ${e.message}`, "err"); status("❌ Error."); }
+    });
+
+    // ─── Seed everything ──────────────────────────────────────────────────────
+    document.getElementById("btn-all").addEventListener("click", async () => {
+      const btn = document.getElementById("btn-all");
+      btn.disabled = true; btn.textContent = "⏳ Seeding...";
+      logEl.innerHTML = "";
+      log("🚀 Starting full seed...\n", "step");
+      try {
+        await seedAdminAccount();
+        await seedAuthAccounts();
+        await seedStudents();
+        await seedLogs();
+        await seedStats();
+        log("\n══════════════════════════════════════════", "ok");
+        log("🎉  ALL DONE!  Open admin_dashboard.html", "done");
+        log("══════════════════════════════════════════", "ok");
+        status("🎉 Complete! Open admin_dashboard.html to see data.");
+      } catch (e) {
+        log(`\n❌ Fatal error: ${e.message}`, "err");
+        status("❌ Something went wrong — see error above.");
+      } finally {
+        btn.disabled = false; btn.textContent = "🚀 Seed Everything";
+      }
+    });
+  </script>
+</body>
+
+</html>
