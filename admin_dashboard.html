@@ -248,26 +248,26 @@
           <p class="text-xs text-slate-500 font-medium tracking-wide">Campus Access Control</p>
         </div>
       </a>
-      <div class="hidden md:flex items-center gap-8" id="nav-tabs">
+      <div class="flex overflow-x-auto scroll-hide items-center gap-4 md:gap-8 max-w-[calc(100vw-180px)] md:max-w-none px-2" id="nav-tabs">
         <button data-target="overview-tab"
-          class="nav-tab flex items-center gap-2 text-primary font-bold text-sm border-b-2 border-primary py-1 transition-colors hover:text-primary">
+           class="nav-tab shrink-0 flex items-center gap-2 text-primary font-bold text-sm border-b-2 border-primary py-1 transition-colors hover:text-primary">
           <span class="material-symbols-outlined text-[20px]">dashboard</span><span>Overview</span>
         </button>
 
 
         <button data-target="logs-tab"
-          class="nav-tab flex items-center gap-2 text-slate-500 text-sm font-medium py-1 transition-colors hover:text-primary border-b-2 border-transparent">
+           class="nav-tab shrink-0 flex items-center gap-2 text-slate-500 text-sm font-medium py-1 transition-colors hover:text-primary border-b-2 border-transparent">
           <span class="material-symbols-outlined text-[20px]">list_alt</span><span>Logs</span>
         </button>
 
         <button data-target="users-tab"
-          class="nav-tab flex items-center gap-2 text-slate-500 text-sm font-medium py-1 transition-colors hover:text-primary border-b-2 border-transparent">
+           class="nav-tab shrink-0 flex items-center gap-2 text-slate-500 text-sm font-medium py-1 transition-colors hover:text-primary border-b-2 border-transparent">
           <span class="material-symbols-outlined text-[20px]">group</span><span>Users</span>
         </button>
 
 
         <button data-target="system-tab"
-          class="nav-tab flex items-center gap-2 text-slate-500 text-sm font-medium py-1 transition-colors hover:text-primary border-b-2 border-transparent">
+           class="nav-tab shrink-0 flex items-center gap-2 text-slate-500 text-sm font-medium py-1 transition-colors hover:text-primary border-b-2 border-transparent">
           <span class="material-symbols-outlined text-[20px]">settings</span><span>System</span>
         </button>
       </div>
@@ -460,10 +460,10 @@
         </label>
       </div>
     </div>
-    <div class="flex-1 @container">
+    <div class="flex-1 overflow-hidden">
       <div
-        class="overflow-hidden rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm">
-        <table class="w-full text-left border-collapse">
+        class="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm">
+        <table class="w-full text-left border-collapse min-w-[800px]">
           <thead>
             <tr class="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800">
               <th
