@@ -278,7 +278,7 @@
               <h2 class="text-lg font-bold text-slate-900">QR Scanner</h2>
               <p class="text-xs text-slate-400 font-semibold">Active Point: Main Entrance</p>
             </div>
-            <div class="flex items-center gap-2 px-3 py-1.5 bg-emerald-50 text-emerald-600 rounded-full">
+            <div id="sensor-badge" class="flex items-center gap-2 px-3 py-1.5 bg-emerald-50 text-emerald-600 rounded-full">
               <span class="size-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
               <span class="text-[10px] font-black uppercase">Sensor Ready</span>
             </div>
@@ -309,6 +309,13 @@
                     <input type="text" id="manual-uid" placeholder="Enter Registration No." class="flex-1 h-12 rounded-xl border-slate-200 text-sm font-bold px-4">
                     <button id="manual-process-btn" class="bg-slate-900 text-white px-6 rounded-xl font-bold">Process</button>
                 </div>
+            </div>
+
+            <!-- Overlay for Holiday Mode -->
+            <div id="holiday-overlay" class="absolute inset-0 z-[60] hidden flex flex-col items-center justify-center bg-slate-900/90 backdrop-blur-md">
+                <span class="material-symbols-outlined text-rose-500 text-6xl mb-4 animate-pulse">lock</span>
+                <h2 class="text-3xl font-black text-white mb-2 text-center">HOLIDAY MODE IS ON</h2>
+                <p class="text-slate-300 font-bold text-center px-6 text-sm">Campus access is restricted.<br>Scanning is currently disabled.</p>
             </div>
           </div>
 
@@ -418,6 +425,7 @@
 
     // --- CORE PORTAL LOGIC ---
     let html5QrScanner;
+    let isHolidayMode = false;
 
     function startPortal() {
         startClock();
@@ -447,6 +455,7 @@
     }
 
     function onScanSuccess(decodedText) {
+        if (isHolidayMode) return;
         if (window.lastScan === decodedText && (Date.now() - window.lastScanTime < 4000)) return;
         window.lastScan = decodedText;
         window.lastScanTime = Date.now();
@@ -643,6 +652,34 @@
     }
 
     function startListeners() {
+        // Holiday Mode Listener
+        onSnapshot(doc(db, "settings", "system"), snap => {
+            if (snap.exists()) {
+                const data = snap.data();
+                isHolidayMode = !!data.holidayMode;
+                
+                const overlay = document.getElementById("holiday-overlay");
+                const sensorBadge = document.getElementById("sensor-badge");
+                const manualInput = document.getElementById("manual-uid");
+                
+                if (isHolidayMode) {
+                    overlay.classList.remove("hidden");
+                    if (sensorBadge) {
+                        sensorBadge.innerHTML = `<span class="size-1.5 rounded-full bg-rose-500"></span><span class="text-[10px] font-black uppercase text-rose-600">Locked</span>`;
+                        sensorBadge.className = "flex items-center gap-2 px-3 py-1.5 bg-rose-50 rounded-full";
+                    }
+                    if (manualInput) manualInput.disabled = true;
+                } else {
+                    overlay.classList.add("hidden");
+                    if (sensorBadge) {
+                        sensorBadge.innerHTML = `<span class="size-1.5 rounded-full bg-emerald-500 animate-pulse"></span><span class="text-[10px] font-black uppercase text-emerald-600">Sensor Ready</span>`;
+                        sensorBadge.className = "flex items-center gap-2 px-3 py-1.5 bg-emerald-50 rounded-full";
+                    }
+                    if (manualInput) manualInput.disabled = false;
+                }
+            }
+        });
+
         // Activity Feed Listener
         const logsQuery = query(collection(db, "accessLogs"), orderBy("timestamp", "desc"), limit(20));
         onSnapshot(logsQuery, async snap => {
@@ -711,6 +748,10 @@
 
     // Manual processing bridge
     document.getElementById('manual-process-btn').addEventListener('click', () => {
+        if (isHolidayMode) {
+            alert("Holiday Mode is active. Manual entry is disabled.");
+            return;
+        }
         const uid = document.getElementById('manual-uid').value.trim();
         if (uid) processStudentUID(uid);
     });

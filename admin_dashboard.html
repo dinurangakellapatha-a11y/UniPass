@@ -703,7 +703,7 @@
                       Automatically trigger heightened security protocols during scheduled campus holidays.</p>
                   </div>
                   <label class="relative inline-flex items-center cursor-pointer">
-                    <input checked="" class="sr-only peer" type="checkbox" value="" />
+                    <input id="holiday-mode-toggle" class="sr-only peer" type="checkbox" />
                     <div
                       class="w-11 h-6 bg-slate-200 dark:bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary">
                     </div>
@@ -1622,6 +1622,31 @@
           </td></tr>`;
         }
       });
+
+      // ── System Settings Logic ──
+      const holidayToggle = document.getElementById("holiday-mode-toggle");
+      if (holidayToggle) {
+        db.collection("settings").doc("system").onSnapshot(docSnap => {
+          if (docSnap.exists) {
+            const data = docSnap.data();
+            holidayToggle.checked = !!data.holidayMode;
+          }
+        }, err => console.error("Settings listener error:", err));
+
+        holidayToggle.addEventListener("change", async (e) => {
+          try {
+            await db.collection("settings").doc("system").set(
+              { holidayMode: e.target.checked }, 
+              { merge: true }
+            );
+            console.log("Holiday Mode updated globally:", e.target.checked);
+          } catch (err) {
+            console.error("Failed to update Holiday Mode:", err);
+            holidayToggle.checked = !e.target.checked; // Revert switch if fail
+            alert("Failed to update Holiday Mode settings. Check your permissions.");
+          }
+        });
+      }
 
     } catch (e) {
       console.error("Firebase Init Error:", e);
