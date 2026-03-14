@@ -254,10 +254,7 @@
           <span class="material-symbols-outlined text-[20px]">dashboard</span><span>Overview</span>
         </button>
 
-        <button data-target="zones-tab"
-          class="nav-tab flex items-center gap-2 text-slate-500 text-sm font-medium py-1 transition-colors hover:text-primary border-b-2 border-transparent">
-          <span class="material-symbols-outlined text-[20px]">domain</span><span>Zones</span>
-        </button>
+
         <button data-target="logs-tab"
           class="nav-tab flex items-center gap-2 text-slate-500 text-sm font-medium py-1 transition-colors hover:text-primary border-b-2 border-transparent">
           <span class="material-symbols-outlined text-[20px]">list_alt</span><span>Logs</span>
@@ -411,99 +408,7 @@
 
 
   </div>
-  <!-- SPATAB zones-tab -->
-  <div id="zones-tab" class="tab-pane hidden flex flex-col px-40 py-10 max-w-[1440px] mx-auto w-full">
 
-    <div class="flex flex-wrap justify-between items-end gap-3 mb-8">
-      <div class="flex flex-col gap-2">
-        <h1 class="text-slate-900 dark:text-white text-4xl font-black leading-tight tracking-[-0.033em]">
-          Gate Settings</h1>
-        <p class="text-slate-600 dark:text-slate-400 text-lg font-normal">Manage enterprise entrance
-          security and monitor real-time traffic.</p>
-      </div>
-
-    </div>
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
-      <div
-        class="flex flex-col rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm overflow-hidden">
-        <div class="h-48 bg-slate-200 dark:bg-slate-800 relative">
-          <div class="absolute inset-0 bg-cover bg-center" data-alt="Security camera view of main entrance gate"
-            style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuDv2MIue_sJ7gumUxNVIHuR_C6GT5TDwa1-dOTIfUppWCPeIcrNcYapOa6arH3rDMmpXShUnE9eTayIrJqckYsuc2VxH5HMS1ouOfA4nTp7vlDkA3F-mt5hi7Lfbx8TO-RVxOjUDDfZsM6l_3uH_O0IGxDYluFTmAzLl3MJnwvUCDHIePKtbfngBhCv7QEx3GKs_RT1nt3Lls5k5e1iVAi-DrMbcovZHauIQMpj2pE_JBZJFkqB1qpCY7zWP0X4VY_ZTIKEujbVaO0");'>
-          </div>
-          <div
-            class="absolute top-4 left-4 bg-green-500 text-white text-xs font-bold px-2 py-1 rounded uppercase tracking-wider">
-            Online</div>
-        </div>
-        <div class="p-6 flex flex-col gap-4">
-          <div class="flex justify-between items-start">
-            <div>
-              <h3 class="text-xl font-bold text-slate-900 dark:text-white">Gate A (Main Entrance)
-              </h3>
-              <p class="text-slate-500 text-sm">ID: GT-MAIN-001 • Primary Lobby Access</p>
-            </div>
-            <div class="flex flex-col items-end">
-              <span class="text-xs font-bold text-slate-400 uppercase">Traffic</span>
-              <span class="text-primary font-bold">High (85%)</span>
-            </div>
-          </div>
-          <div class="grid grid-cols-2 gap-3">
-            <div
-              class="flex flex-col items-center justify-center p-4 bg-indigo-50 dark:bg-indigo-900/20 rounded-xl border border-indigo-100 dark:border-indigo-900/40">
-              <span class="material-symbols-outlined text-indigo-500 mb-1">login</span>
-              <p class="text-2xl font-black text-indigo-600 dark:text-indigo-400" id="gateA-entries">—</p>
-              <p class="text-xs font-bold text-indigo-400 uppercase tracking-wider mt-0.5">Total Entries</p>
-            </div>
-            <div
-              class="flex flex-col items-center justify-center p-4 bg-emerald-50 dark:bg-emerald-900/20 rounded-xl border border-emerald-100 dark:border-emerald-900/40">
-              <span class="material-symbols-outlined text-emerald-500 mb-1">logout</span>
-              <p class="text-2xl font-black text-emerald-600 dark:text-emerald-400" id="gateA-exits">—</p>
-              <p class="text-xs font-bold text-emerald-400 uppercase tracking-wider mt-0.5">Total Exits</p>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div
-        class="flex flex-col rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm overflow-hidden">
-        <div class="h-48 bg-slate-200 dark:bg-slate-800 relative">
-          <div class="absolute inset-0 bg-cover bg-center" data-alt="North gate industrial entrance security view"
-            style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuDA3EU9uiRHCgrUZwqGBmig5dfh2N5hDHeKu6j48K0JJ2Ki0NmNXOH-dd__s1Kew33moBNWm_VhJ_FkFziMrTPAGAKVIZvzTQtpQZefgW3CN_NJ7C7yu5A23vnO-HsuNt5Tj-kPgxsujVRoc0XMlJBSFJMeIDf6xrlWOp6_eGGgR2bYy-lp69VbCgP69gYBSv5siZAs5z2ep8nq2_SsRrSE3K45ugFULj1MVjVt9EsG08R7wZ4QA0FZjOdpOPhDGCCkQUiYk_lMFAc");'>
-          </div>
-          <div
-            class="absolute top-4 left-4 bg-green-500 text-white text-xs font-bold px-2 py-1 rounded uppercase tracking-wider">
-            Online</div>
-        </div>
-        <div class="p-6 flex flex-col gap-4">
-          <div class="flex justify-between items-start">
-            <div>
-              <h3 class="text-xl font-bold text-slate-900 dark:text-white">Gate B (North Gate)
-              </h3>
-              <p class="text-slate-500 text-sm">ID: GT-NORTH-002 • Logistics &amp; Loading</p>
-            </div>
-            <div class="flex flex-col items-end">
-              <span class="text-xs font-bold text-slate-400 uppercase">Traffic</span>
-              <span class="text-primary font-bold">Low (12%)</span>
-            </div>
-          </div>
-          <div class="grid grid-cols-2 gap-3">
-            <div
-              class="flex flex-col items-center justify-center p-4 bg-indigo-50 dark:bg-indigo-900/20 rounded-xl border border-indigo-100 dark:border-indigo-900/40">
-              <span class="material-symbols-outlined text-indigo-500 mb-1">login</span>
-              <p class="text-2xl font-black text-indigo-600 dark:text-indigo-400" id="gateB-entries">—</p>
-              <p class="text-xs font-bold text-indigo-400 uppercase tracking-wider mt-0.5">Total Entries</p>
-            </div>
-            <div
-              class="flex flex-col items-center justify-center p-4 bg-emerald-50 dark:bg-emerald-900/20 rounded-xl border border-emerald-100 dark:border-emerald-900/40">
-              <span class="material-symbols-outlined text-emerald-500 mb-1">logout</span>
-              <p class="text-2xl font-black text-emerald-600 dark:text-emerald-400" id="gateB-exits">—</p>
-              <p class="text-xs font-bold text-emerald-400 uppercase tracking-wider mt-0.5">Total Exits</p>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-
-  </div>
   <!-- SPATAB logs-tab -->
   <div id="logs-tab" class="tab-pane hidden flex-1 flex flex-col px-4 md:px-10 lg:px-20 py-8 gap-6">
 
@@ -514,42 +419,31 @@
         <p class="text-slate-500 dark:text-slate-400 text-base font-normal leading-normal">Real-time monitoring of
           campus access events and student movement.</p>
       </div>
-      <div class="flex gap-3">
-        <button
-          class="flex min-w-[84px] max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-xl h-10 px-4 bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100 text-sm font-bold leading-normal tracking-[0.015em] border border-slate-200 dark:border-slate-700 hover:bg-slate-200 transition-colors">
-          <span class="material-symbols-outlined mr-2 text-[18px]">download</span>
-          <span class="truncate">Export CSV</span>
-        </button>
-      </div>
+
     </div>
     <div
       class="flex flex-wrap gap-4 items-center bg-white dark:bg-slate-900/50 p-4 rounded-xl border border-slate-200 dark:border-slate-800">
       <div class="flex gap-2">
-        <button
-          class="flex h-10 shrink-0 items-center justify-center gap-x-2 rounded-lg bg-primary text-white px-4 text-sm font-semibold">
+        <button id="filter-all"
+          class="filter-btn active flex h-10 shrink-0 items-center justify-center gap-x-2 rounded-lg bg-primary text-white px-4 text-sm font-semibold">
           All Events
         </button>
-        <button
-          class="flex h-10 shrink-0 items-center justify-center gap-x-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-4 text-sm font-medium hover:bg-slate-200 transition-colors">
+        <button id="filter-denied"
+          class="filter-btn flex h-10 shrink-0 items-center justify-center gap-x-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-4 text-sm font-medium hover:bg-slate-200 transition-colors">
           Denied
         </button>
-        <button
-          class="flex h-10 shrink-0 items-center justify-center gap-x-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-4 text-sm font-medium hover:bg-slate-200 transition-colors">
+        <button id="filter-failed"
+          class="filter-btn flex h-10 shrink-0 items-center justify-center gap-x-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-4 text-sm font-medium hover:bg-slate-200 transition-colors">
           Failed Auth
         </button>
       </div>
       <div class="h-8 w-px bg-slate-200 dark:bg-slate-700 hidden sm:block"></div>
       <div class="flex items-center gap-2 flex-1 min-w-[300px]">
         <div
-          class="flex-1 flex items-center bg-slate-100 dark:bg-slate-800 rounded-lg px-3 py-2 border border-slate-200 dark:border-slate-700">
+          class="flex-1 flex items-center bg-slate-100 dark:bg-slate-800 rounded-lg px-3 py-2 border border-slate-200 dark:border-slate-700 group cursor-pointer relative">
           <span class="material-symbols-outlined text-slate-500 text-[18px] mr-2">calendar_today</span>
-          <span class="text-sm text-slate-700 dark:text-slate-300">Oct 27, 2023 - Oct 28, 2023</span>
-          <span class="material-symbols-outlined text-slate-500 text-[18px] ml-auto">expand_more</span>
+          <input type="date" id="log-date-filter" class="w-full bg-transparent border-none text-sm text-slate-700 dark:text-slate-300 focus:ring-0 outline-none h-6 cursor-pointer">
         </div>
-        <button
-          class="flex size-10 items-center justify-center rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
-          <span class="material-symbols-outlined">filter_list</span>
-        </button>
       </div>
     </div>
     <div class="flex-1 @container">
@@ -1287,19 +1181,39 @@
 
       // Also populate the detailed logs tab table
       if (mainTbody) {
-        mainTbody.innerHTML = logs.map(entry => {
-          const student = allStudents.find(s => s.id === entry.uid || s.id === entry.docId || (s.uid && s.uid === entry.uid) || (s.email && entry.uid && s.email.toLowerCase() === entry.uid.toLowerCase()));
-          const displayName = entry.studentName || student?.displayName || "Unknown";
+        let filteredMainLogs = logs;
+        if (window.logFilterType === 'denied') {
+          filteredMainLogs = logs.filter(l => l.result === 'denied' || l.type === 'denied');
+        } else if (window.logFilterType === 'failed') {
+          filteredMainLogs = logs.filter(l => l.result === 'bypassed' || l.result === 'failed');
+        }
+        
+        if (window.logFilterDate) {
+          filteredMainLogs = filteredMainLogs.filter(l => {
+            const ts = l.timestamp?.toDate ? l.timestamp.toDate() : (l.timestamp?.seconds ? new Date(l.timestamp.seconds * 1000) : new Date(l._ts || Date.now()));
+            const y = ts.getFullYear();
+            const m = String(ts.getMonth() + 1).padStart(2, '0');
+            const d = String(ts.getDate()).padStart(2, '0');
+            return `${y}-${m}-${d}` === window.logFilterDate;
+          });
+        }
 
-          const s = typeStyle(entry.type);
-          const time = entry.minsAgo !== undefined
-            ? fmtAge(entry.minsAgo)
-            : (entry.timestamp ? fmtTime(entry.timestamp) : "—");
-          const dateLabel = entry.timestamp ? fmtDateLabel(entry.timestamp) : "";
-          const timestampFull = `${dateLabel} ${time}`;
-          const isUnknown = displayName === "Unknown Visitor" || displayName.includes("UID:");
+        if (filteredMainLogs.length === 0) {
+            mainTbody.innerHTML = `<tr><td colspan="5" class="py-12 text-center text-slate-400 italic font-medium">No activity matching filters.</td></tr>`;
+        } else {
+            mainTbody.innerHTML = filteredMainLogs.map(entry => {
+              const student = allStudents.find(s => s.id === entry.uid || s.id === entry.docId || (s.uid && s.uid === entry.uid) || (s.email && entry.uid && s.email.toLowerCase() === entry.uid.toLowerCase()));
+              const displayName = entry.studentName || student?.displayName || "Unknown";
 
-          return `
+              const s = typeStyle(entry.type);
+              const time = entry.minsAgo !== undefined
+                ? fmtAge(entry.minsAgo)
+                : (entry.timestamp ? fmtTime(entry.timestamp) : "—");
+              const dateLabel = entry.timestamp ? fmtDateLabel(entry.timestamp) : "";
+              const timestampFull = `${dateLabel} ${time}`;
+              const isUnknown = displayName === "Unknown Visitor" || displayName.includes("UID:");
+
+              return `
             <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
               <td class="px-6 py-4 text-slate-500 dark:text-slate-400 text-sm">${timestampFull}</td>
               <td class="px-6 py-4">
@@ -1324,6 +1238,7 @@
               </td>
             </tr>`;
         }).join("");
+        }
       }
     }
 
@@ -1567,6 +1482,44 @@
     document.getElementById("chart-range").addEventListener("change", e => {
       // Logic for real data traffic range would go here
     });
+
+    // ── LOG FILTERS LOGIC ─────────────
+    window.logFilterType = 'all';
+    window.logFilterDate = '';
+
+    const btnAll = document.getElementById("filter-all");
+    const btnDenied = document.getElementById("filter-denied");
+    const btnFailed = document.getElementById("filter-failed");
+    const dateFilter = document.getElementById("log-date-filter");
+
+    function updateFilterUI() {
+      [btnAll, btnDenied, btnFailed].forEach(b => {
+        if(b) {
+          b.classList.remove('bg-primary', 'text-white');
+          b.classList.add('bg-slate-100', 'dark:bg-slate-800', 'text-slate-600', 'dark:text-slate-300');
+        }
+      });
+      let activeBtn = btnAll;
+      if (window.logFilterType === 'denied') activeBtn = btnDenied;
+      if (window.logFilterType === 'failed') activeBtn = btnFailed;
+
+      if (activeBtn) {
+        activeBtn.classList.remove('bg-slate-100', 'dark:bg-slate-800', 'text-slate-600', 'dark:text-slate-300');
+        activeBtn.classList.add('bg-primary', 'text-white');
+      }
+      renderTable(currentLogs);
+    }
+
+    if (btnAll) btnAll.addEventListener("click", () => { window.logFilterType = 'all'; updateFilterUI(); });
+    if (btnDenied) btnDenied.addEventListener("click", () => { window.logFilterType = 'denied'; updateFilterUI(); });
+    if (btnFailed) btnFailed.addEventListener("click", () => { window.logFilterType = 'failed'; updateFilterUI(); });
+
+    if (dateFilter) {
+      dateFilter.addEventListener("change", (e) => {
+        window.logFilterDate = e.target.value;
+        renderTable(currentLogs);
+      });
+    }
 
     // ── FIREBASE INITIALIZATION ──
     try {
